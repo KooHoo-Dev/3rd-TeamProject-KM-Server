@@ -62,6 +62,8 @@ public class Room
     private readonly string code; // 방번호
     private readonly int logMovesPerSecond; // 룸허브를 통해서 전달 받습니다. 
 
+    private bool isStarted = false;
+
     public bool IsEmpty => members.IsEmpty;
     
     public Room(string code, int logMovesPerSecond)
@@ -131,6 +133,7 @@ public class Room
             if(kind?.Type == "move") HandleMove(member, text);
             else if(kind?.Type == "chat") await HandleChatAsync(member, text);
             else if (kind?.Type == "ready") await HandleReadyAsync(member, text);
+            else if (kind?.Type == "start") await HandleStartAsync(member, text);
             
             // 모르는 정보는 그냥 흘려버립니다.
             // Tip
@@ -181,6 +184,26 @@ public class Room
             Console.WriteLine($"[{code}] {ready.Id}'s ready state: {ready.IsReady}");
 
             await BroadcastAsync(ready);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async Task HandleStartAsync(Member member, string text)
+    {
+        await gate.WaitAsync();
+
+        try
+        {
+            if (isStarted) return;
+            if (member.User.IsHost == false) return;
+            if (members.Count < 2) return;
+            if (members.Values.Any(player => player.User.IsReady == false)) return;
+
+            isStarted = true;
+            await BroadcastAsync(new StartMessage());
         }
         finally
         {

@@ -89,4 +89,9 @@ public class ReadyMessage
     public bool IsReady { get; set; }
 }
 
+public class StartMessage
+{
+    public string Type { get; set; } = "start";
+}
+
 #endregion
