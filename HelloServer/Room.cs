@@ -323,6 +323,8 @@ public class Room
                 return null;
             }
             
+            member.User.IsHost = members.Count == 0;
+            
             // 누군가가 hello 메시지를 보냈으면
             // welcome 메시지를 이용해서
             // 현재 방 사람들을 접속한 유저에게 전송하고,
