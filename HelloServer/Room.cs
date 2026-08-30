@@ -47,7 +47,7 @@ public class Room
             = new SemaphoreSlim(1, 1);
     }
 
-    private const int MAX_PLAYERS = 1;
+    private const int MAX_PLAYERS = 4;
     
     // race condition이 일어나도 여러 쓰레드에서 동시적으로
     // 참조 하여 읽을 수 있는 딕셔너리 입니다. 일반적인 Dictionary를 쓰면
