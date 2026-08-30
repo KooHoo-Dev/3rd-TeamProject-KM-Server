@@ -4,6 +4,8 @@ public class User
 {
     public string Id { get; set; }
     public string Nickname { get; set; }
+
+    public bool IsReady { get; set; }
 }
 
 // 받은 글자가 어떤 종류인지 나타내는 데이터 객체
@@ -76,6 +78,13 @@ public class StateMessage
 {
     public string Type { get; set; } = "state";
     public PlayerState[] States { get; set; }
+}
+
+public class ReadyMessage
+{
+    public string Type { get; set; } = "ready";
+    public string Id { get; set; }
+    public bool IsReady { get; set; }
 }
 
 #endregion

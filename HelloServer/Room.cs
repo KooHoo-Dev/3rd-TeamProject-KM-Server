@@ -130,6 +130,7 @@ public class Room
             
             if(kind?.Type == "move") HandleMove(member, text);
             else if(kind?.Type == "chat") await HandleChatAsync(member, text);
+            else if (kind?.Type == "ready") await HandleReadyAsync(member, text);
             
             // 모르는 정보는 그냥 흘려버립니다.
             // Tip
@@ -166,6 +167,25 @@ public class Room
         // (서버) -> (다른 클라이언트) 들에게 보낸다
         // 받은 객체를 그대로 보낸다.
         await BroadcastAsync(chat);
+    }
+
+    private async Task HandleReadyAsync(Member member, string text)
+    {
+        await gate.WaitAsync();
+
+        try
+        {
+            ReadyMessage ready = JsonSerializer.Deserialize<ReadyMessage>(text);
+
+            member.User.IsReady = ready.IsReady;
+            Console.WriteLine($"[{code}] {ready.Id}'s ready state: {ready.IsReady}");
+
+            await BroadcastAsync(ready);
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     #endregion
