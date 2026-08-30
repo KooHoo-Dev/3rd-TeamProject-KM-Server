@@ -3,7 +3,7 @@
 public class User
 {
     public string Id { get; set; }
-    public string NickName { get; set; }
+    public string Nickname { get; set; }
 }
 
 // 받은 글자가 어떤 종류인지 나타내는 데이터 객체

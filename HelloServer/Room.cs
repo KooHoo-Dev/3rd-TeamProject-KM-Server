@@ -46,6 +46,8 @@ public class Room
         public readonly SemaphoreSlim SendLock 
             = new SemaphoreSlim(1, 1);
     }
+
+    private const int MAX_PLAYERS = 1;
     
     // race condition이 일어나도 여러 쓰레드에서 동시적으로
     // 참조 하여 읽을 수 있는 딕셔너리 입니다. 일반적인 Dictionary를 쓰면
@@ -279,7 +281,7 @@ public class Room
         member.LastLogAt = DateTime.Now; // 들어온 시각으로 맞춰 둔다.
         member.User = new User();
         member.User.Id = id;
-        member.User.NickName = hello.NickName.Trim();
+        member.User.Nickname = hello.NickName.Trim();
         
         // 들어오고 나가는 일은 한사람에 한명씩 해야합니다.
         // 사람이 들어오면 현재 방에 있는 멤버들에게도 메시지를 보내줘야겠죠?
@@ -289,6 +291,18 @@ public class Room
 
         try
         {
+            if (members.Count >= MAX_PLAYERS)
+            {
+                Console.WriteLine($"[{code}] 정원 초과로 입장 거절: {member.User.Nickname}({member.User.Id})");
+
+                await socket.CloseOutputAsync(
+                    WebSocketCloseStatus.PolicyViolation, 
+                    "방이 가득 찼습니다.", 
+                    token);
+                
+                return null;
+            }
+            
             // 누군가가 hello 메시지를 보냈으면
             // welcome 메시지를 이용해서
             // 현재 방 사람들을 접속한 유저에게 전송하고,
@@ -315,7 +329,7 @@ public class Room
             gate.Release();
         }
         
-        Console.WriteLine($"[{code}] {member.User.NickName}({member.User.Id}) 들어옴");
+        Console.WriteLine($"[{code}] {member.User.Nickname}({member.User.Id}) 들어옴");
         return member;
     }
 
@@ -338,7 +352,7 @@ public class Room
             gate.Release();
         }
         
-        Console.WriteLine($"[{code}] {member.User.NickName}({member.User.Id}) 나감");
+        Console.WriteLine($"[{code}] {member.User.Nickname}({member.User.Id}) 나감");
     }
 
     // 한 사람의 접속부터 끊김까지 통째로 관리하느 ㄴ함수
@@ -392,7 +406,7 @@ public class Room
         string claimed = move.Id == member.User.Id ? "" : $"  (보낸 쪽이 적은 번호 : {move.Id})";
 
         Console.WriteLine(
-            $"[{code}] 받음 {member.User.NickName}({member.User.Id}) " +
+            $"[{code}] 받음 {member.User.Nickname}({member.User.Id}) " +
             $"({member.X,7:F2}, {member.Y,7:F2})  " +
             $"지난 {gap.TotalSeconds:F1}초에 {member.MovesSinceLog}번{claimed}");
 
