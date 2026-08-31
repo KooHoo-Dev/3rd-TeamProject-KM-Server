@@ -10,8 +10,7 @@ public partial class Room
     {
         public User User;
         public MemberConnection Connection;
-
-        public int MovesSinceLog;
+        
         public DateTime LastLogAt;
     }
 
