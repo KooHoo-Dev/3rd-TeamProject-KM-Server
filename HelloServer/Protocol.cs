@@ -94,6 +94,48 @@ public class StartMessage
     public string Type { get; set; } = "start";
 
     public string[] MemberIds { get; set; }
+    public string[] TurnOrders { get; set; }
 }
 
 #endregion
+
+public class BoardReadyMessage
+{
+    public string Type { get; set; } = "boardReady";
+}
+
+public class RollDiceRequestMessage
+{
+    public string Type { get; set; } = "rollDice";
+    public int TurnId { get; set; }
+}
+    
+public class PresentationFinishedMessage
+{
+    public string Type { get; set; } = "presentationFinished";
+    public int TurnId { get; set; }
+}
+
+public class TurnStartedMessage
+{
+    public string Type { get; set; } = "turnStarted";
+        
+    public int RoundCount { get; set; }
+    public int TurnId { get; set; }
+    public string PlayerId { get; set; }
+}
+
+public class DiceRolledMessage
+{
+    public string Type { get; set; } = "diceRolled";
+        
+    public int TurnId { get; set; }
+    public string PlayerId { get; set; }
+    public int D1 { get; set; }
+    public int D2 { get; set; }
+}
+
+public class GameEndedMessage
+{
+    public string Type { get; set; } = "gameEnded";
+}

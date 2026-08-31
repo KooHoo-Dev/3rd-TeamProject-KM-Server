@@ -136,6 +136,8 @@ public class Room
             else if(kind?.Type == "chat") await HandleChatAsync(member, text);
             else if (kind?.Type == "ready") await HandleReadyAsync(member, text);
             else if (kind?.Type == "start") await HandleStartAsync(member, text);
+            else if (kind?.Type is "boardReady" or "rollDice" or "presentationFinished")
+                await HandleGameMessageAsync(member, kind.Type, text);
             
             // 모르는 정보는 그냥 흘려버립니다.
             // Tip
@@ -215,6 +217,62 @@ public class Room
         {
             gate.Release();
         }
+    }
+
+    private async Task HandleGameMessageAsync(Member member, string type, string text)
+    {
+        await gate.WaitAsync();
+
+        try
+        {
+            if (session == null) return;
+
+            switch (type)
+            {
+                case "boardReady":
+                    await HandleBoardReadyAsync(member, text);
+                    break;
+                case "rollDice":
+                    await HandleRollDiceAsync(member, text);
+                    break;
+                case "presentationFinished":
+                    await HandlePresentationFinishedAsync(member, text);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            }
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async Task HandleBoardReadyAsync(Member member, string _)
+    {
+        if (session.TryStart(member.User.Id))
+            await BroadcastAsync(session.CreateTurnStartedMessage());
+    }
+
+    private async Task HandleRollDiceAsync(Member member, string text)
+    {
+        RollDiceRequestMessage msg = JsonSerializer.Deserialize<RollDiceRequestMessage>(text);
+        if (msg == null) return;
+
+        DiceRolledMessage result = session.TryRollDice(member.User.Id, msg.TurnId);
+        if (result != null) await BroadcastAsync(result);
+    }
+
+    private async Task HandlePresentationFinishedAsync(Member member, string text)
+    {
+        PresentationFinishedMessage msg = JsonSerializer.Deserialize<PresentationFinishedMessage>(text);
+        if (msg == null) return;
+        
+        bool isAdvanced = session.TryCompletePresentation(member.User.Id, msg.TurnId);
+        if (isAdvanced == false) return;
+
+        if (session.Phase == SessionPhase.Ended) await BroadcastAsync(new GameEndedMessage());
+        else await BroadcastAsync(session.CreateTurnStartedMessage());
     }
 
     #endregion
