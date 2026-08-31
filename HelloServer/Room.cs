@@ -54,6 +54,7 @@ public class Room
     // 여러 쓰레드에서 동시에 사용하더라도 딕셔너리의 한 상태를 유지 시킬 수 있는
     // 안정성이 보장된 딕셔너리 입니다.
     private readonly ConcurrentDictionary<string, Member> members = new();
+    private readonly List<string> memberOrder = new();
 
     private GameSession session;
 
@@ -203,7 +204,7 @@ public class Room
             if (members.Count < 2) return;
             if (members.Values.Any(player => player.User.IsReady == false)) return;
             
-            string[] memberIds = members.Values.Select(player => player.User.Id).ToArray();
+            string[] memberIds = memberOrder.ToArray();
             session = new(memberIds);
 
             isStarted = true;
@@ -370,9 +371,10 @@ public class Room
             await SendAsync(member, welcome);
 
             members[member.User.Id] = member;
+            memberOrder.Add(member.User.Id);
+            
             // join 메시지를 뿌린다. 접속자인 member 에게는 보내지 않는다
             await BroadcastAsync(new JoinMessage { User = member.User }, member.User.Id);
-
         }
         finally
         {
@@ -394,6 +396,7 @@ public class Room
         try
         {
             members.TryRemove(member.User.Id, out _);
+            memberOrder.Remove(member.User.Id);
             // 퇴장한것을 알려줍니다.
             await BroadcastAsync(new LeaveMessage { Id = member.User.Id }, member.User.Id);
         }
