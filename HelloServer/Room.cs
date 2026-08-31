@@ -211,7 +211,7 @@ public class Room
 
             isStarted = true;
 
-            await BroadcastAsync(new StartMessage { MemberIds = memberIds });
+            await BroadcastAsync(new StartMessage { MemberIds = memberIds, TurnOrders = session.MemberIds });
         }
         finally
         {
