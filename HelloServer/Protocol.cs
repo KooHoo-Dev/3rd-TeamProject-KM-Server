@@ -31,7 +31,7 @@ public class PlayerState
 public class HelloMessage
 {
     public string Type { get; set; }
-    public string NickName { get; set; }
+    public string Nickname { get; set; }
 }
 
 public class MoveMessage
@@ -94,7 +94,6 @@ public class StartMessage
     public string Type { get; set; } = "start";
 
     public string[] MemberIds { get; set; }
-    public string[] TurnOrders { get; set; }
 }
 
 #endregion
@@ -110,9 +109,9 @@ public class RollDiceRequestMessage
     public int TurnId { get; set; }
 }
     
-public class PresentationFinishedMessage
+public class DiceAnimationEndedMessage
 {
-    public string Type { get; set; } = "presentationFinished";
+    public string Type { get; set; } = "diceAnimationEnded";
     public int TurnId { get; set; }
 }
 

@@ -136,7 +136,7 @@ public class Room
             else if(kind?.Type == "chat") await HandleChatAsync(member, text);
             else if (kind?.Type == "ready") await HandleReadyAsync(member, text);
             else if (kind?.Type == "start") await HandleStartAsync(member, text);
-            else if (kind?.Type is "boardReady" or "rollDice" or "presentationFinished")
+            else if (kind?.Type is "boardReady" or "rollDice" or "diceAnimationEnded")
                 await HandleGameMessageAsync(member, kind.Type, text);
             
             // 모르는 정보는 그냥 흘려버립니다.
@@ -211,7 +211,7 @@ public class Room
 
             isStarted = true;
 
-            await BroadcastAsync(new StartMessage { MemberIds = memberIds, TurnOrders = session.MemberIds });
+            await BroadcastAsync(new StartMessage { MemberIds = memberIds });
         }
         finally
         {
@@ -235,7 +235,7 @@ public class Room
                 case "rollDice":
                     await HandleRollDiceAsync(member, text);
                     break;
-                case "presentationFinished":
+                case "diceAnimationEnded":
                     await HandlePresentationFinishedAsync(member, text);
                     break;
                 default:
@@ -265,7 +265,7 @@ public class Room
 
     private async Task HandlePresentationFinishedAsync(Member member, string text)
     {
-        PresentationFinishedMessage msg = JsonSerializer.Deserialize<PresentationFinishedMessage>(text);
+        DiceAnimationEndedMessage msg = JsonSerializer.Deserialize<DiceAnimationEndedMessage>(text);
         if (msg == null) return;
         
         bool isAdvanced = session.TryCompletePresentation(member.User.Id, msg.TurnId);
@@ -388,7 +388,7 @@ public class Room
         member.LastLogAt = DateTime.Now; // 들어온 시각으로 맞춰 둔다.
         member.User = new User();
         member.User.Id = id;
-        member.User.Nickname = hello.NickName.Trim();
+        member.User.Nickname = hello.Nickname.Trim();
         
         // 들어오고 나가는 일은 한사람에 한명씩 해야합니다.
         // 사람이 들어오면 현재 방에 있는 멤버들에게도 메시지를 보내줘야겠죠?
