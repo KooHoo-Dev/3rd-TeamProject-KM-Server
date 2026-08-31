@@ -43,8 +43,7 @@ public class Room
         // 사용하는 클래스. (비동기에서 lock처리가 안되서 사용)
         // 읽는것은 여러 쓰레드에서 읽을 수 있는데 사용(Write)는
         // 하나의 쓰레드에서만 온전히 돌아갈 수 있도록 하게 해주는 클래스
-        public readonly SemaphoreSlim SendLock 
-            = new SemaphoreSlim(1, 1);
+        public readonly SemaphoreSlim SendLock = new(1, 1);
     }
 
     private const int MAX_PLAYERS = 4;
@@ -56,9 +55,11 @@ public class Room
     // 안정성이 보장된 딕셔너리 입니다.
     private readonly ConcurrentDictionary<string, Member> members = new();
 
+    private GameSession session;
+
     // 들어오고 나가는 메시지 처리(일)을 한줄로 세우는 자물쇠 입니다.
     // lock블록이 await가 안먹어서 사용합니다.
-    private readonly SemaphoreSlim gate = new SemaphoreSlim(1, 1);
+    private readonly SemaphoreSlim gate = new(1, 1);
     private readonly string code; // 방번호
     private readonly int logMovesPerSecond; // 룸허브를 통해서 전달 받습니다. 
 
@@ -201,9 +202,13 @@ public class Room
             if (member.User.IsHost == false) return;
             if (members.Count < 2) return;
             if (members.Values.Any(player => player.User.IsReady == false)) return;
+            
+            string[] memberIds = members.Values.Select(player => player.User.Id).ToArray();
+            session = new(memberIds);
 
             isStarted = true;
-            await BroadcastAsync(new StartMessage());
+
+            await BroadcastAsync(new StartMessage { MemberIds = memberIds });
         }
         finally
         {
@@ -430,7 +435,6 @@ public class Room
     }
     
     #endregion
-    
     
     // LogMove 함수는 수업에서 안한 부분
     // 위치가 들어오고 있다는 것을 눈으로 보여 주는 함수. 

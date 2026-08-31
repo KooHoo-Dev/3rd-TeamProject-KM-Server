@@ -92,6 +92,8 @@ public class ReadyMessage
 public class StartMessage
 {
     public string Type { get; set; } = "start";
+
+    public string[] MemberIds { get; set; }
 }
 
 #endregion
