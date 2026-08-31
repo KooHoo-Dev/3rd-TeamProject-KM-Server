@@ -140,6 +140,8 @@ public class RoomHub
                     }
                 }
 
+                /*
+                대전 들어가면 쓸 거 같기는 한데... 일단은 지금 당장 필요없으니 제거
                 List<Task> sending = new List<Task>();
                 foreach (Room room in snapshot)
                 {
@@ -148,6 +150,7 @@ public class RoomHub
                 }
                 
                 await Task.WhenAll(sending);
+                */
             }
 
         }
