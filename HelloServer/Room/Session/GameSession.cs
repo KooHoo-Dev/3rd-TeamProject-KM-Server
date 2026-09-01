@@ -72,11 +72,14 @@ public class GameSession
         };
     }
 
-    public GoldCardDrawnMessage TryDrawGoldCard(string memberId, int turnId, int cardId)
+    public GoldCardDrawnMessage TryDrawGoldCard(string memberId, int turnId, int[] cardIds)
     {
         if (Phase != SessionPhase.WaitingForTurnFinished) return null;
         if (turnId != TurnId) return null;
         if (memberId != CurrentMemberId) return null;
+        
+        int randIdx = Random.Shared.Next(0, cardIds.Length);
+        int cardId = cardIds[randIdx];
 
         return new GoldCardDrawnMessage
         {

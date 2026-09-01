@@ -49,7 +49,7 @@ public class DrawGoldCardMessage
     public string Type { get; set; } = ProtocolHeader.DRAW_GOLD_CARD;
 
     public int TurnId { get; set; }
-    public int CardId { get; set; }
+    public int[] CardIds { get; set; }
 }
 
 public class TurnFinishedMessage

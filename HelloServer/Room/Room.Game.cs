@@ -51,7 +51,7 @@ public partial class Room
     private async Task HandleDrawGoldCardAsync(Member member, DrawGoldCardMessage msg)
     {
         GoldCardDrawnMessage result = 
-            session.TryDrawGoldCard(member.User.Id, msg.TurnId, msg.CardId);
+            session.TryDrawGoldCard(member.User.Id, msg.TurnId, msg.CardIds);
         
         if (result != null) await BroadcastAsync(result);
     }
