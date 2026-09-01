@@ -9,7 +9,7 @@ public partial class Room
     {
         RegisterGameHandler<SetBoardReadyMessage>(ProtocolHeader.SET_BOARD_READY, HandleSetBoardReadyAsync);
         RegisterGameHandler<RollDiceMessage>(ProtocolHeader.ROLL_DICE, HandleRollDiceAsync);
-        RegisterGameHandler<DiceAnimationFinishedMessage>(ProtocolHeader.DICE_ANIMATION_FINISHED, HandleDiceAnimationFinishedAsync);
+        RegisterGameHandler<TurnFinishedMessage>(ProtocolHeader.TURN_FINISHED, HandleTurnFinishedAsync);
     }
 
     private void RegisterGameHandler<T>(string type, Func<Member, T, Task> handler)
@@ -48,19 +48,19 @@ public partial class Room
         if (result != null) await BroadcastAsync(result);
     }
 
-    private async Task HandleDiceAnimationFinishedAsync(Member member, DiceAnimationFinishedMessage msg)
+    private async Task HandleTurnFinishedAsync(Member member, TurnFinishedMessage msg)
     {
         if (msg == null) return;
-        
-        bool isAdvanced = 
-            session.ReportDiceAnimationEnded(member.User.Id, msg.TurnId);
+
+        bool isAdvanced =
+            session.ReportTurnFinished(member.User.Id, msg.TurnId);
 
         if (isAdvanced == false) return;
         
         object message = 
             session.Phase == SessionPhase.Ended ? 
-            new GameEndedMessage() : 
-            session.CreateTurnStartedMessage();
+                new GameEndedMessage() : 
+                session.CreateTurnStartedMessage();
         
         await BroadcastAsync(message);
     }

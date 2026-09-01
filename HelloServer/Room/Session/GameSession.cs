@@ -4,7 +4,7 @@ public enum SessionPhase
 {
     WaitingForBoards,
     WaitingForRoll,
-    WaitingForDiceAnimation,
+    WaitingForTurnFinished,
     Ended
 }
 
@@ -15,7 +15,7 @@ public class GameSession
     private readonly string[] memberIds;
 
     private readonly HashSet<string> readyMembers = new();
-    private readonly HashSet<string> diceAnimationEndedMembers = new();
+    private readonly HashSet<string> turnFinishedMembers = new();
     
     private int currentMemberIndex;
     
@@ -60,8 +60,8 @@ public class GameSession
         int d1 = Random.Shared.Next(1, 7);
         int d2 = Random.Shared.Next(1, 7);
 
-        diceAnimationEndedMembers.Clear();
-        Phase = SessionPhase.WaitingForDiceAnimation;
+        turnFinishedMembers.Clear();
+        Phase = SessionPhase.WaitingForTurnFinished;
 
         return new DiceRolledMessage
         {
@@ -72,15 +72,15 @@ public class GameSession
         };
     }
     
-    public bool ReportDiceAnimationEnded(string memberId, int turnId)
+    public bool ReportTurnFinished(string memberId, int turnId)
     {
-        if (Phase != SessionPhase.WaitingForDiceAnimation) return false;
+        if (Phase != SessionPhase.WaitingForTurnFinished) return false;
         if (turnId != TurnId) return false;
         if (memberIds.Contains(memberId) == false) return false;
-        if (diceAnimationEndedMembers.Add(memberId) == false) return false;
-        if (diceAnimationEndedMembers.Count != memberIds.Length) return false;
+        if (turnFinishedMembers.Add(memberId) == false) return false;
+        if (turnFinishedMembers.Count != memberIds.Length) return false;
 
-        FinishTurn(); // 일단 지금은 턴 종료인데, 타일 처리로 나중에 바꿔야 함
+        FinishTurn();
         return true;
     }
     
@@ -108,6 +108,13 @@ public class GameSession
         Phase = SessionPhase.WaitingForRoll;
     }
     
-    public TurnStartedMessage CreateTurnStartedMessage() 
-        => new() { RoundCount = RoundCount, TurnId = TurnId, PlayerId = CurrentMemberId };
+    public TurnStartedMessage CreateTurnStartedMessage()
+    {
+        return new TurnStartedMessage
+        {
+            RoundCount = RoundCount,
+            TurnId = TurnId,
+            PlayerId = CurrentMemberId
+        };
+    }
 }

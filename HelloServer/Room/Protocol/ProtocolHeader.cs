@@ -9,7 +9,7 @@ public static class ProtocolHeader
     public const string START_GAME = "startGame";
     public const string SET_BOARD_READY = "setBoardReady";
     public const string ROLL_DICE = "rollDice";
-    public const string DICE_ANIMATION_FINISHED = "diceAnimationFinished";
+    public const string TURN_FINISHED = "turnFinished";
 
     #endregion
 

@@ -44,9 +44,9 @@ public class RollDiceMessage
     public int TurnId { get; set; }
 }
 
-public class DiceAnimationFinishedMessage
+public class TurnFinishedMessage
 {
-    public string Type { get; set; } = ProtocolHeader.DICE_ANIMATION_FINISHED;
+    public string Type { get; set; } = ProtocolHeader.TURN_FINISHED;
     public int TurnId { get; set; }
 }
 
@@ -97,7 +97,7 @@ public class TurnStartedMessage
     public int TurnId { get; set; }
     public string PlayerId { get; set; }
 }
-
+            
 public class DiceRolledMessage
 {
     public string Type { get; set; } = ProtocolHeader.DICE_ROLLED;
