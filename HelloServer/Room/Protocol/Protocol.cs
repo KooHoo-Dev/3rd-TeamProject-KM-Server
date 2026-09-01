@@ -44,6 +44,14 @@ public class RollDiceMessage
     public int TurnId { get; set; }
 }
 
+public class DrawGoldCardMessage
+{
+    public string Type { get; set; } = ProtocolHeader.DRAW_GOLD_CARD;
+
+    public int TurnId { get; set; }
+    public int CardId { get; set; }
+}
+
 public class TurnFinishedMessage
 {
     public string Type { get; set; } = ProtocolHeader.TURN_FINISHED;
@@ -106,6 +114,15 @@ public class DiceRolledMessage
     public string PlayerId { get; set; }
     public int D1 { get; set; }
     public int D2 { get; set; }
+}
+
+public class GoldCardDrawnMessage
+{
+    public string Type { get; set; } = ProtocolHeader.GOLD_CARD_DRAWN;
+        
+    public int TurnId { get; set; }
+    public int CardId { get; set; }
+    public string PlayerId { get; set; }
 }
 
 public class GameEndedMessage

@@ -9,6 +9,7 @@ public static class ProtocolHeader
     public const string START_GAME = "startGame";
     public const string SET_BOARD_READY = "setBoardReady";
     public const string ROLL_DICE = "rollDice";
+    public const string DRAW_GOLD_CARD = "drawGoldCard";
     public const string TURN_FINISHED = "turnFinished";
 
     #endregion
@@ -22,6 +23,7 @@ public static class ProtocolHeader
     public const string GAME_STARTED = "gameStarted";
     public const string TURN_STARTED = "turnStarted";
     public const string DICE_ROLLED = "diceRolled";
+    public const string GOLD_CARD_DRAWN = "goldCardDrawn";
     public const string GAME_ENDED = "gameEnded";
 
     #endregion

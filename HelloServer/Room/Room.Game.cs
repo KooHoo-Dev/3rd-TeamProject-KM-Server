@@ -9,6 +9,7 @@ public partial class Room
     {
         RegisterGameHandler<SetBoardReadyMessage>(ProtocolHeader.SET_BOARD_READY, HandleSetBoardReadyAsync);
         RegisterGameHandler<RollDiceMessage>(ProtocolHeader.ROLL_DICE, HandleRollDiceAsync);
+        RegisterGameHandler<DrawGoldCardMessage>(ProtocolHeader.DRAW_GOLD_CARD, HandleDrawGoldCardAsync);
         RegisterGameHandler<TurnFinishedMessage>(ProtocolHeader.TURN_FINISHED, HandleTurnFinishedAsync);
     }
 
@@ -21,6 +22,7 @@ public partial class Room
             try
             {
                 if (session == null) return;
+                if (message == null) return;
                 await handler(members, message);
             }
             finally
@@ -40,18 +42,22 @@ public partial class Room
     
     private async Task HandleRollDiceAsync(Member member, RollDiceMessage msg)
     {
-        if (msg == null) return;
-
         DiceRolledMessage result = 
             session.TryRollDice(member.User.Id, msg.TurnId);
 
         if (result != null) await BroadcastAsync(result);
     }
 
+    private async Task HandleDrawGoldCardAsync(Member member, DrawGoldCardMessage msg)
+    {
+        GoldCardDrawnMessage result = 
+            session.TryDrawGoldCard(member.User.Id, msg.TurnId, msg.CardId);
+        
+        if (result != null) await BroadcastAsync(result);
+    }
+
     private async Task HandleTurnFinishedAsync(Member member, TurnFinishedMessage msg)
     {
-        if (msg == null) return;
-
         bool isAdvanced =
             session.ReportTurnFinished(member.User.Id, msg.TurnId);
 

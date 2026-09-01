@@ -71,6 +71,20 @@ public class GameSession
             D2 = d2
         };
     }
+
+    public GoldCardDrawnMessage TryDrawGoldCard(string memberId, int turnId, int cardId)
+    {
+        if (Phase != SessionPhase.WaitingForTurnFinished) return null;
+        if (turnId != TurnId) return null;
+        if (memberId != CurrentMemberId) return null;
+
+        return new GoldCardDrawnMessage
+        {
+            TurnId = turnId, 
+            CardId = cardId,
+            PlayerId = memberId
+        };
+    }
     
     public bool ReportTurnFinished(string memberId, int turnId)
     {
