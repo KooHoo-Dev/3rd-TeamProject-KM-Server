@@ -19,6 +19,7 @@ public class GameSession
     private readonly HashSet<string> turnFinishedMembers = new();
 
     private readonly Dictionary<string, int> memberGolds = new();
+    private readonly Dictionary<int, UserTerritory> territories = new();
     
     private int currentMemberIndex;
     
@@ -106,21 +107,13 @@ public class GameSession
         if (memberIds.Contains(memberId) == false) return false;
         if (turnFinishedMembers.Add(memberId) == false) return false;
         if (turnFinishedMembers.Count != memberIds.Length) return false;
-
-        FinishTurn();
-        return true;
-    }
-    
-    #endregion
-
-    private void FinishTurn()
-    {
+        
         bool isLastMember = currentMemberIndex == memberIds.Length - 1;
 
         if (isLastMember && RoundCount >= MAX_ROUND_COUNT)
         {
             Phase = SessionPhase.Ended;
-            return;
+            return true;
         }
 
         currentMemberIndex++;
@@ -133,18 +126,12 @@ public class GameSession
 
         TurnId++;
         Phase = SessionPhase.WaitingForRoll;
+        
+        return true;
     }
     
-    public TurnStartedMessage CreateTurnStartedMessage()
-    {
-        return new TurnStartedMessage
-        {
-            RoundCount = RoundCount,
-            TurnId = TurnId,
-            PlayerId = CurrentMemberId
-        };
-    }
-
+    #endregion
+    
     public bool TryChangeGold(string memberId, int amount)
     {
         if (memberGolds.ContainsKey(memberId) == false)
@@ -155,6 +142,24 @@ public class GameSession
         
         memberGolds[memberId] += amount;
         return true;
+    }
+
+    public bool TryGetTerritory(int spaceId, out UserTerritory result) 
+        => territories.TryGetValue(spaceId, out result);
+
+    public IEnumerable<UserTerritory> GetTerritories(string memberId) 
+        => territories.Values.Where(t => t.UserId == memberId);
+    
+    #region CREATE_MESSAGE
+    
+    public TurnStartedMessage CreateTurnStartedMessage()
+    {
+        return new TurnStartedMessage
+        {
+            RoundCount = RoundCount,
+            TurnId = TurnId,
+            PlayerId = CurrentMemberId
+        };
     }
 
     public EconomyUpdatedMessage CreateEconomyUpdatedMessage()
@@ -170,4 +175,14 @@ public class GameSession
                 .ToArray()
         };
     }
+
+    public TerritoryUpdatedMessage CreateTerritoryUpdatedMessage()
+    {
+        return new TerritoryUpdatedMessage
+        {
+            Territories = territories.Values.ToArray()
+        };   
+    }
+    
+    #endregion
 }

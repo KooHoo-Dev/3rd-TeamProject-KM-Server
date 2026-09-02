@@ -15,6 +15,15 @@ public class UserEconomy
     public int Gold { get; set; }
 }
 
+public class UserTerritory
+{
+    public string UserId { get; set; }
+
+    public int SpaceId { get; set; }
+    public bool IsBuilt { get; set; }
+    public bool IsLandmark { get; set; }
+}
+
 public class MessageHeader
 {
     public string Type { get; set; }
@@ -62,6 +71,23 @@ public class TurnFinishedMessage
 {
     public string Type { get; set; } = ProtocolHeader.TURN_FINISHED;
     public int TurnId { get; set; }
+}
+
+public class UpdateEconomyMessage
+{
+    public string Type { get; set; } = ProtocolHeader.UPDATE_ECONOMY;
+    
+    public int Amount { get; set; }
+    public bool IsIncrease { get; set; }
+}
+
+public class BuyOrSellTerritoryMessage
+{
+    public string Type { get; set; } = ProtocolHeader.BUY_OR_SELL_TERRITORY;
+
+    public int TurnId { get; set; }
+    public int SpaceId { get; set; }
+    public bool IsBuy { get; set; } // true = buy, false = sell
 }
 
 #endregion
@@ -140,6 +166,12 @@ public class EconomyUpdatedMessage
 {
     public string Type { get; set; } = ProtocolHeader.ECONOMY_UPDATED;
     public UserEconomy[] Economies { get; set; }
+}
+
+public class TerritoryUpdatedMessage
+{
+    public string Type { get; set; } = ProtocolHeader.TERRITORY_UPDATED;
+    public UserTerritory[] Territories { get; set; }
 }
 
 #endregion
