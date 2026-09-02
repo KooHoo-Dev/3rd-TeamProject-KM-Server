@@ -11,11 +11,14 @@ public enum SessionPhase
 public class GameSession
 {
     private const int MAX_ROUND_COUNT = 20;
+    private const int INITIAL_GOLD = 100000;
     
     private readonly string[] memberIds;
 
     private readonly HashSet<string> readyMembers = new();
     private readonly HashSet<string> turnFinishedMembers = new();
+
+    private readonly Dictionary<string, int> memberGolds = new();
     
     private int currentMemberIndex;
     
@@ -30,6 +33,13 @@ public class GameSession
     {
         this.memberIds = (string[])memberIds.Clone();
         Random.Shared.Shuffle(this.memberIds); // 일단 초기 구현에서는 랜덤 순서 배정으로 둠
+
+        // 서버에 초기 자금 업데이트
+        for (int i = 0; i < memberIds.Length; i++)
+        {
+            string id = memberIds[i];
+            memberGolds[id] = INITIAL_GOLD;
+        }
     }
 
     #region REPORT_AND_REQUEST
@@ -132,6 +142,32 @@ public class GameSession
             RoundCount = RoundCount,
             TurnId = TurnId,
             PlayerId = CurrentMemberId
+        };
+    }
+
+    public bool TryChangeGold(string memberId, int amount)
+    {
+        if (memberGolds.ContainsKey(memberId) == false)
+        {
+            Console.WriteLine($"Member {memberId} does not exist.");
+            return false;
+        }
+        
+        memberGolds[memberId] += amount;
+        return true;
+    }
+
+    public EconomyUpdatedMessage CreateEconomyUpdatedMessage()
+    {
+        return new EconomyUpdatedMessage
+        {
+            Economies = memberIds
+                .Select(id => new UserEconomy
+                {
+                    UserId = id, 
+                    Gold = memberGolds[id]
+                })
+                .ToArray()
         };
     }
 }

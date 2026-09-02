@@ -36,8 +36,11 @@ public partial class Room
 
     private async Task HandleSetBoardReadyAsync(Member member, SetBoardReadyMessage _)
     {
-        if (session.ReportBoardReady(member.User.Id)) 
-            await BroadcastAsync(session.CreateTurnStartedMessage());
+        if (session.ReportBoardReady(member.User.Id) == false)
+            return;
+
+        await BroadcastAsync(session.CreateEconomyUpdatedMessage());
+        await BroadcastAsync(session.CreateTurnStartedMessage());
     }
     
     private async Task HandleRollDiceAsync(Member member, RollDiceMessage msg)
@@ -72,4 +75,12 @@ public partial class Room
     }
 
     #endregion
+
+    private async Task ChangeGoldAsync(string memberId, int amount)
+    {
+        if (session.TryChangeGold(memberId, amount) == false)
+            return;
+        
+        await BroadcastAsync(session.CreateEconomyUpdatedMessage());
+    }
 }

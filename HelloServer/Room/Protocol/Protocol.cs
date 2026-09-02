@@ -9,6 +9,12 @@ public class User
     public bool IsReady { get; set; }
 }
 
+public class UserEconomy
+{
+    public string UserId { get; set; }
+    public int Gold { get; set; }
+}
+
 public class MessageHeader
 {
     public string Type { get; set; }
@@ -128,6 +134,12 @@ public class GoldCardDrawnMessage
 public class GameEndedMessage
 {
     public string Type { get; set; } = ProtocolHeader.GAME_ENDED;
+}
+
+public class EconomyUpdatedMessage
+{
+    public string Type { get; set; } = ProtocolHeader.ECONOMY_UPDATED;
+    public UserEconomy[] Economies { get; set; }
 }
 
 #endregion
