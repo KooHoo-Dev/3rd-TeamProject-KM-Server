@@ -105,6 +105,8 @@ public class GameSession
     
     public bool ReportTurnFinished(string memberId, int turnId)
     {
+        Console.WriteLine($"Turn Finished: {memberId} {turnId}");
+        
         if (Phase != SessionPhase.WaitingForTurnFinished) return false;
         if (turnId != TurnId) return false;
         if (memberIds.Contains(memberId) == false) return false;
