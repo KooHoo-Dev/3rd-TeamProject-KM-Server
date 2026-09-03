@@ -2,8 +2,20 @@
 
 public partial class Room
 {
+    private class PendingUserMove
+    {
+        public long MoveId;
+        public int TurnId;
+        public string RequestId;
+
+        public HashSet<string> WaitingMemberIds = new();
+    }
+    
     private GameSession session;
     private bool isGameStarted = false;
+
+    private long lastMoveId;
+    private PendingUserMove pendingUserMove;
 
     private void RegisterGameHandlers()
     {
@@ -15,6 +27,7 @@ public partial class Room
         
         RegisterGameHandler<UpdateEconomyMessage>(ProtocolHeader.UPDATE_ECONOMY, HandleUpdateEconomyAsync);
         RegisterGameHandler<MoveUserToMessage>(ProtocolHeader.MOVE_USER_TO, HandleUserMovedToAsync);
+        RegisterGameHandler<UserMoveFinishedMessage>(ProtocolHeader.USER_MOVE_FINISHED, HandleUserMoveFinishedAsync);
         RegisterGameHandler<AddIncapacitationCountMessage>(ProtocolHeader.ADD_INCAPACITATION_COUNT, HandleAddIncapacitationCountAsync);
     }
 
@@ -66,15 +79,16 @@ public partial class Room
 
     private async Task HandleTurnFinishedAsync(Member member, TurnFinishedMessage msg)
     {
+        if (pendingUserMove != null) return;
+        
         bool isAdvanced =
             session.ReportTurnFinished(member.User.Id, msg.TurnId);
 
         if (isAdvanced == false) return;
         
-        object message = 
-            session.Phase == SessionPhase.Ended ? 
-                new GameEndedMessage() : 
-                session.CreateTurnStartedMessage();
+        object message = session.Phase == SessionPhase.Ended ? 
+            new GameEndedMessage() : 
+            session.CreateTurnStartedMessage();
         
         await BroadcastAsync(message);
     }
@@ -99,11 +113,50 @@ public partial class Room
 
     private async Task HandleUserMovedToAsync(Member member, MoveUserToMessage msg)
     {
-        UserMovedToMessage result = new()
+        if (session.Phase != SessionPhase.WaitingForTurnFinished) return;
+        if (msg.TurnId != session.TurnId) return;
+        if (member.User.Id != session.CurrentMemberId) return;
+        if (members.ContainsKey(msg.UserId) == false) return;
+        if (pendingUserMove != null) return;
+
+        long moveId = Interlocked.Increment(ref lastMoveId);
+
+        pendingUserMove = new PendingUserMove
         {
-            UserId = msg.UserId,
-            SpaceId = msg.SpaceId
+            MoveId = moveId, 
+            TurnId = msg.TurnId, 
+            RequestId = msg.RequestId, 
+            WaitingMemberIds = members.Keys.ToHashSet()
         };
+
+        UserMovedToMessage result = new UserMovedToMessage
+        {
+            TurnId = msg.TurnId,
+            MoveId = moveId,
+            RequestId = msg.RequestId,
+            UserId = msg.UserId,
+            TileId = msg.TileId
+        };
+        
+        await BroadcastAsync(result);
+    }
+
+    private async Task HandleUserMoveFinishedAsync(Member member, UserMoveFinishedMessage msg)
+    {
+        if (pendingUserMove == null) return;
+        if (pendingUserMove.MoveId != msg.MoveId) return;
+        if (pendingUserMove.TurnId != msg.TurnId) return;
+        if (pendingUserMove.WaitingMemberIds.Remove(member.User.Id) == false) return;
+        if (pendingUserMove.WaitingMemberIds.Count > 0) return;
+
+        UserMoveFinishedMessage result = new()
+        {
+            TurnId = pendingUserMove.TurnId, 
+            MoveId = pendingUserMove.MoveId, 
+            RequestId = pendingUserMove.RequestId
+        };
+
+        pendingUserMove = null;
         
         await BroadcastAsync(result);
     }
