@@ -101,6 +101,14 @@ public class AddIncapacitationCountMessage
     public int Count { get; set; }
 }
 
+public class MoveUserToMessage
+{
+    public string Type { get; set; } = ProtocolHeader.MOVE_USER_TO;
+
+    public string UserId { get; set; }
+    public int SpaceId { get; set; }
+}
+
 #endregion
 
 #region SERVER_TO_CLIENT
@@ -185,6 +193,14 @@ public class TerritoryUpdatedMessage
 {
     public string Type { get; set; } = ProtocolHeader.TERRITORY_UPDATED;
     public UserTerritory[] Territories { get; set; }
+}
+
+public class UserMovedToMessage
+{
+    public string Type { get; set; } = ProtocolHeader.USER_MOVED_TO;
+    
+    public string UserId { get; set; }
+    public int SpaceId { get; set; }
 }
 
 #endregion

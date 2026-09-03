@@ -14,7 +14,7 @@ public partial class Room
         RegisterGameHandler<TurnFinishedMessage>(ProtocolHeader.TURN_FINISHED, HandleTurnFinishedAsync);
         
         RegisterGameHandler<UpdateEconomyMessage>(ProtocolHeader.UPDATE_ECONOMY, HandleUpdateEconomyAsync);
-        
+        RegisterGameHandler<MoveUserToMessage>(ProtocolHeader.MOVE_USER_TO, HandleUserMovedToAsync);
         RegisterGameHandler<AddIncapacitationCountMessage>(ProtocolHeader.ADD_INCAPACITATION_COUNT, HandleAddIncapacitationCountAsync);
     }
 
@@ -97,13 +97,16 @@ public partial class Room
         return Task.CompletedTask;
     }
 
-    #endregion
-
-    private async Task ChangeGoldAsync(string memberId, int amount)
+    private async Task HandleUserMovedToAsync(Member member, MoveUserToMessage msg)
     {
-        if (session.TryChangeGold(memberId, amount) == false)
-            return;
+        UserMovedToMessage result = new()
+        {
+            UserId = msg.UserId,
+            SpaceId = msg.SpaceId
+        };
         
-        await BroadcastAsync(session.CreateEconomyUpdatedMessage());
+        await BroadcastAsync(result);
     }
+
+    #endregion
 }
