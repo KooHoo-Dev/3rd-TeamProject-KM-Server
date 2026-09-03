@@ -124,13 +124,20 @@ public class UserMoveFinishedMessage
     public string RequestId { get; set; }
 }
 
-public class TileEffectResolvedMessage
+public enum TileEffectSyncPhase
 {
-    public string Type { get; set; } = ProtocolHeader.TILE_EFFECT_RESOLVED;
-        
+    Ready = 0,
+    Resolved = 1
+}
+
+public class TileEffectSyncMessage
+{
+    public string Type { get; set; } = ProtocolHeader.TILE_EFFECT_SYNC;
+
     public int TurnId { get; set; }
     public long MoveId { get; set; }
     public int StepIndex { get; set; }
+    public TileEffectSyncPhase Phase { get; set; }
 }
     
 #endregion

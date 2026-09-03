@@ -10,12 +10,16 @@ public static partial class ProtocolHeader
     public const string UPDATE_ECONOMY = "updateEconomy";
 
     public const string DRAW_GOLD_CARD = "drawGoldCard";
+    public const string ADD_INCAPACITATION_COUNT = "addIncapacitationCount";
+    public const string TURN_FINISHED = "turnFinished";
+
+    #endregion
+
+    #region BI_DIRECTIONAL
+
     public const string MOVE_USER_TO = "moveUserTo";
     public const string USER_MOVE_FINISHED = "userMoveFinished";
-    public const string ADD_INCAPACITATION_COUNT = "addIncapacitationCount";
-    
-    public const string TILE_EFFECT_RESOLVED = "tileEffectResolved";
-    public const string TURN_FINISHED = "turnFinished";
+    public const string TILE_EFFECT_SYNC = "tileEffectSync";
 
     #endregion
 

@@ -17,12 +17,13 @@ public partial class Room
 
     private long lastMoveId;
     private readonly Dictionary<long, PendingUserMove> pendingUserMoves = new();
+    private readonly Dictionary<string, HashSet<string>> tileEffectReadyMembers = new();
 
     private void RegisterGameHandlers()
     {
         RegisterGameHandler<SetBoardReadyMessage>(ProtocolHeader.SET_BOARD_READY, HandleSetBoardReadyAsync);
         RegisterGameHandler<RollDiceMessage>(ProtocolHeader.ROLL_DICE, HandleRollDiceAsync);
-        RegisterGameHandler<TileEffectResolvedMessage>(ProtocolHeader.TILE_EFFECT_RESOLVED, HandleTileEffectResolvedAsync);
+        RegisterGameHandler<TileEffectSyncMessage>(ProtocolHeader.TILE_EFFECT_SYNC, HandleTileEffectSyncAsync);
         RegisterGameHandler<TurnFinishedMessage>(ProtocolHeader.TURN_FINISHED, HandleTurnFinishedAsync);
         
         RegisterGameHandler<DrawGoldCardMessage>(ProtocolHeader.DRAW_GOLD_CARD, HandleDrawGoldCardAsync);
@@ -70,27 +71,59 @@ public partial class Room
         if (result != null) await BroadcastAsync(result);
     }
 
-    private async Task HandleTileEffectResolvedAsync(Member member, TileEffectResolvedMessage msg)
+    private async Task HandleTileEffectSyncAsync(Member member, TileEffectSyncMessage msg)
     {
         if (session.Phase != SessionPhase.WaitingForTurnFinished) return;
         if (msg.TurnId != session.TurnId) return;
+        if (msg.MoveId < 0) return;
+        if (msg.StepIndex < 0) return;
 
-        if (msg.MoveId == 0)
+        PendingUserMove pendingUserMove = null;
+
+        if (msg.MoveId > 0)
         {
-            if (member.User.Id != session.CurrentMemberId)
-                return;
-        }
-        else
-        {
-            if (pendingUserMoves.TryGetValue(msg.MoveId, out PendingUserMove pendingUserMove) == false)
+            if (pendingUserMoves.TryGetValue(msg.MoveId, out pendingUserMove) == false)
                 return;
 
             if (pendingUserMove.TurnId != msg.TurnId) return;
-            if (pendingUserMove.UserId != member.User.Id) return;
         }
+
+        if (msg.Phase == TileEffectSyncPhase.Ready)
+        {
+            await HandleTileEffectReadyAsync(member, msg);
+            return;
+        }
+
+        if (msg.Phase != TileEffectSyncPhase.Resolved) return;
+
+        if (msg.MoveId == 0)
+        {
+            if (member.User.Id != session.CurrentMemberId) return;
+        }
+        else if (pendingUserMove.UserId != member.User.Id) return;
 
         await BroadcastAsync(msg);
     }
+
+    private async Task HandleTileEffectReadyAsync(Member member, TileEffectSyncMessage msg)
+    {
+        string key = CreateTileEffectKey(msg);
+
+        if (tileEffectReadyMembers.TryGetValue(key, out HashSet<string> waitingMembers) == false)
+        {
+            waitingMembers = members.Keys.ToHashSet();
+            tileEffectReadyMembers.Add(key, waitingMembers);
+        }
+
+        if (waitingMembers.Remove(member.User.Id) == false) return;
+        if (waitingMembers.Count > 0) return;
+
+        tileEffectReadyMembers.Remove(key);
+        await BroadcastAsync(msg);
+    }
+
+    private static string CreateTileEffectKey(TileEffectSyncMessage msg)
+        => $"{msg.TurnId}:{msg.MoveId}:{msg.StepIndex}";
 
     private async Task HandleDrawGoldCardAsync(Member member, DrawGoldCardMessage msg)
     {
