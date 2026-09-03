@@ -11,6 +11,7 @@ public partial class Room
         RegisterGameHandler<RollDiceMessage>(ProtocolHeader.ROLL_DICE, HandleRollDiceAsync);
         RegisterGameHandler<DrawGoldCardMessage>(ProtocolHeader.DRAW_GOLD_CARD, HandleDrawGoldCardAsync);
         RegisterGameHandler<TurnFinishedMessage>(ProtocolHeader.TURN_FINISHED, HandleTurnFinishedAsync);
+        RegisterGameHandler<UpdateEconomyMessage>(ProtocolHeader.UPDATE_ECONOMY, HandleUpdateEconomyAsync);
     }
 
     private void RegisterGameHandler<T>(string type, Func<Member, T, Task> handler)
@@ -72,6 +73,18 @@ public partial class Room
                 session.CreateTurnStartedMessage();
         
         await BroadcastAsync(message);
+    }
+
+    private async Task HandleUpdateEconomyAsync(Member member, UpdateEconomyMessage msg)
+    {
+        for (int i = 0; i < msg.Updates.Length; i++)
+        {
+            EconomyUpdate update = msg.Updates[i];
+            session.TryChangeGold(update.UserId, update.Amount);
+        }
+
+        EconomyUpdatedMessage result = session.CreateEconomyUpdatedMessage();
+        await BroadcastAsync(result);
     }
 
     #endregion
