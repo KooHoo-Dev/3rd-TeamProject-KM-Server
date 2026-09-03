@@ -162,9 +162,12 @@ public class GameSession
     {
         int actionDisableCount = memberIncapacitationCounts[CurrentMemberId];
         bool canAct = actionDisableCount == 0;
-        
-        if (canAct == false) 
+
+        if (canAct == false)
+        {
             memberIncapacitationCounts[CurrentMemberId]--;
+            Phase = SessionPhase.WaitingForTurnFinished;
+        }
         
         return new TurnStartedMessage
         {
