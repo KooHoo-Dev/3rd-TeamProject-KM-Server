@@ -15,6 +15,7 @@ public static partial class ProtocolHeader
     public const string USER_MOVE_FINISHED = "userMoveFinished";
     public const string ADD_INCAPACITATION_COUNT = "addIncapacitationCount";
     
+    public const string TILE_EFFECT_RESOLVED = "tileEffectResolved";
     public const string TURN_FINISHED = "turnFinished";
 
     #endregion

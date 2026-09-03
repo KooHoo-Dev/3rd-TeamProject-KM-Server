@@ -7,6 +7,7 @@ public partial class Room
         public long MoveId;
         public int TurnId;
         public string RequestId;
+        public string UserId;
 
         public HashSet<string> WaitingMemberIds = new();
     }
@@ -20,11 +21,11 @@ public partial class Room
     private void RegisterGameHandlers()
     {
         RegisterGameHandler<SetBoardReadyMessage>(ProtocolHeader.SET_BOARD_READY, HandleSetBoardReadyAsync);
-        
         RegisterGameHandler<RollDiceMessage>(ProtocolHeader.ROLL_DICE, HandleRollDiceAsync);
-        RegisterGameHandler<DrawGoldCardMessage>(ProtocolHeader.DRAW_GOLD_CARD, HandleDrawGoldCardAsync);
+        RegisterGameHandler<TileEffectResolvedMessage>(ProtocolHeader.TILE_EFFECT_RESOLVED, HandleTileEffectResolvedAsync);
         RegisterGameHandler<TurnFinishedMessage>(ProtocolHeader.TURN_FINISHED, HandleTurnFinishedAsync);
         
+        RegisterGameHandler<DrawGoldCardMessage>(ProtocolHeader.DRAW_GOLD_CARD, HandleDrawGoldCardAsync);
         RegisterGameHandler<UpdateEconomyMessage>(ProtocolHeader.UPDATE_ECONOMY, HandleUpdateEconomyAsync);
         RegisterGameHandler<MoveUserToMessage>(ProtocolHeader.MOVE_USER_TO, HandleUserMovedToAsync);
         RegisterGameHandler<UserMoveFinishedMessage>(ProtocolHeader.USER_MOVE_FINISHED, HandleUserMoveFinishedAsync);
@@ -67,6 +68,29 @@ public partial class Room
             session.TryRollDice(member.User.Id, msg.TurnId);
 
         if (result != null) await BroadcastAsync(result);
+    }
+
+    private async Task HandleTileEffectResolvedAsync(Member member, TileEffectResolvedMessage msg)
+    {
+        if (session.Phase != SessionPhase.WaitingForTurnFinished) return;
+        if (msg.TurnId != session.TurnId) return;
+        if (member.User.Id != msg.UserId) return;
+
+        if (msg.MoveId == 0)
+        {
+            if (msg.UserId != session.CurrentMemberId)
+                return;
+        }
+        else
+        {
+            if (pendingUserMoves.TryGetValue(msg.MoveId, out PendingUserMove pendingUserMove) == false)
+                return;
+
+            if (pendingUserMove.TurnId != msg.TurnId) return;
+            if (pendingUserMove.UserId != msg.UserId) return;
+        }
+
+        await BroadcastAsync(msg);
     }
 
     private async Task HandleDrawGoldCardAsync(Member member, DrawGoldCardMessage msg)
@@ -125,6 +149,7 @@ public partial class Room
             MoveId = moveId, 
             TurnId = msg.TurnId, 
             RequestId = msg.RequestId, 
+            UserId = msg.UserId,
             WaitingMemberIds = members.Keys.ToHashSet()
         };
 

@@ -34,6 +34,19 @@ public class RollDiceMessage
     public int TurnId { get; set; }
 }
 
+public class TileEffectResolvedMessage
+{
+    public string Type { get; set; } = ProtocolHeader.TILE_EFFECT_RESOLVED;
+
+    public int TurnId { get; set; }
+
+    public long MoveId { get; set; }
+    public int StepIndex { get; set; }
+
+    public int TileId { get; set; }
+    public string UserId { get; set; }
+}
+
 public class DrawGoldCardMessage
 {
     public string Type { get; set; } = ProtocolHeader.DRAW_GOLD_CARD;
