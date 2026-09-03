@@ -19,6 +19,8 @@ public class GameSession
     private readonly HashSet<string> turnFinishedMembers = new();
 
     private readonly Dictionary<string, int> memberGolds = new();
+    private readonly Dictionary<string, int> memberIncapacitationCounts = new();
+    
     private readonly Dictionary<int, UserTerritory> territories = new();
     
     private int currentMemberIndex;
@@ -40,6 +42,7 @@ public class GameSession
         {
             string id = memberIds[i];
             memberGolds[id] = INITIAL_GOLD;
+            memberIncapacitationCounts[id] = 0;
         }
     }
 
@@ -149,16 +152,27 @@ public class GameSession
 
     public IEnumerable<UserTerritory> GetTerritories(string memberId) 
         => territories.Values.Where(t => t.UserId == memberId);
+
+    public void AddIncapacitationCount(string memberId, int count)
+        => memberIncapacitationCounts[memberId] += count;
     
     #region CREATE_MESSAGE
     
     public TurnStartedMessage CreateTurnStartedMessage()
     {
+        int actionDisableCount = memberIncapacitationCounts[CurrentMemberId];
+        bool canAct = actionDisableCount == 0;
+        
+        if (canAct == false) 
+            memberIncapacitationCounts[CurrentMemberId]--;
+        
         return new TurnStartedMessage
         {
             RoundCount = RoundCount,
             TurnId = TurnId,
-            PlayerId = CurrentMemberId
+            
+            PlayerId = CurrentMemberId,
+            CanAct = canAct
         };
     }
 

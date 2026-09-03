@@ -16,6 +16,8 @@ public static class ProtocolHeader
     
     public const string UPDATE_ECONOMY = "updateEconomy";
     public const string BUY_OR_SELL_TERRITORY = "buyOrSellTerritory";
+    
+    public const string ADD_INCAPACITATION_COUNT = "addIncapacitationCount";
 
     #endregion
 

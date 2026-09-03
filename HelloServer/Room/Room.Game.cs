@@ -8,10 +8,14 @@ public partial class Room
     private void RegisterGameHandlers()
     {
         RegisterGameHandler<SetBoardReadyMessage>(ProtocolHeader.SET_BOARD_READY, HandleSetBoardReadyAsync);
+        
         RegisterGameHandler<RollDiceMessage>(ProtocolHeader.ROLL_DICE, HandleRollDiceAsync);
         RegisterGameHandler<DrawGoldCardMessage>(ProtocolHeader.DRAW_GOLD_CARD, HandleDrawGoldCardAsync);
         RegisterGameHandler<TurnFinishedMessage>(ProtocolHeader.TURN_FINISHED, HandleTurnFinishedAsync);
+        
         RegisterGameHandler<UpdateEconomyMessage>(ProtocolHeader.UPDATE_ECONOMY, HandleUpdateEconomyAsync);
+        
+        RegisterGameHandler<AddIncapacitationCountMessage>(ProtocolHeader.ADD_INCAPACITATION_COUNT, HandleAddIncapacitationCountAsync);
     }
 
     private void RegisterGameHandler<T>(string type, Func<Member, T, Task> handler)
@@ -75,7 +79,7 @@ public partial class Room
         await BroadcastAsync(message);
     }
 
-    private async Task HandleUpdateEconomyAsync(Member member, UpdateEconomyMessage msg)
+    private async Task HandleUpdateEconomyAsync(Member _, UpdateEconomyMessage msg)
     {
         for (int i = 0; i < msg.Updates.Length; i++)
         {
@@ -85,6 +89,12 @@ public partial class Room
 
         EconomyUpdatedMessage result = session.CreateEconomyUpdatedMessage();
         await BroadcastAsync(result);
+    }
+
+    private Task HandleAddIncapacitationCountAsync(Member member, AddIncapacitationCountMessage msg)
+    {
+        session.AddIncapacitationCount(member.User.Id, msg.Count);
+        return Task.CompletedTask;
     }
 
     #endregion

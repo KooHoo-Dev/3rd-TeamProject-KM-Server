@@ -94,6 +94,13 @@ public class BuyOrSellTerritoryMessage
     public bool IsBuy { get; set; } // true = buy, false = sell
 }
 
+public class AddIncapacitationCountMessage
+{
+    public string Type { get; set; } = ProtocolHeader.ADD_INCAPACITATION_COUNT;
+    
+    public int Count { get; set; }
+}
+
 #endregion
 
 #region SERVER_TO_CLIENT
@@ -139,7 +146,9 @@ public class TurnStartedMessage
     
     public int RoundCount { get; set; }
     public int TurnId { get; set; }
+    
     public string PlayerId { get; set; }
+    public bool CanAct { get; set; }
 }
             
 public class DiceRolledMessage
