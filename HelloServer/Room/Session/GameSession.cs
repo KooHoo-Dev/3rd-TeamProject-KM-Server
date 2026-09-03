@@ -153,7 +153,10 @@ public class GameSession
         => territories.Values.Where(t => t.UserId == memberId);
 
     public void AddIncapacitationCount(string memberId, int count)
-        => memberIncapacitationCounts[memberId] += count;
+    {
+        if (count < 0) return;
+        memberIncapacitationCounts[memberId] += count;
+    }
     
     #region CREATE_MESSAGE
     

@@ -15,7 +15,7 @@ public partial class Room
     private bool isGameStarted = false;
 
     private long lastMoveId;
-    private PendingUserMove pendingUserMove;
+    private readonly Dictionary<long, PendingUserMove> pendingUserMoves = new();
 
     private void RegisterGameHandlers()
     {
@@ -79,7 +79,7 @@ public partial class Room
 
     private async Task HandleTurnFinishedAsync(Member member, TurnFinishedMessage msg)
     {
-        if (pendingUserMove != null) return;
+        if (pendingUserMoves.Count > 0) return;
         
         bool isAdvanced =
             session.ReportTurnFinished(member.User.Id, msg.TurnId);
@@ -117,11 +117,10 @@ public partial class Room
         if (msg.TurnId != session.TurnId) return;
         if (member.User.Id != session.CurrentMemberId) return;
         if (members.ContainsKey(msg.UserId) == false) return;
-        if (pendingUserMove != null) return;
 
         long moveId = Interlocked.Increment(ref lastMoveId);
 
-        pendingUserMove = new PendingUserMove
+        pendingUserMoves[moveId] = new PendingUserMove
         {
             MoveId = moveId, 
             TurnId = msg.TurnId, 
@@ -143,8 +142,7 @@ public partial class Room
 
     private async Task HandleUserMoveFinishedAsync(Member member, UserMoveFinishedMessage msg)
     {
-        if (pendingUserMove == null) return;
-        if (pendingUserMove.MoveId != msg.MoveId) return;
+        if (pendingUserMoves.TryGetValue(msg.MoveId, out PendingUserMove pendingUserMove) == false) return;
         if (pendingUserMove.TurnId != msg.TurnId) return;
         if (pendingUserMove.WaitingMemberIds.Remove(member.User.Id) == false) return;
         if (pendingUserMove.WaitingMemberIds.Count > 0) return;
@@ -156,7 +154,7 @@ public partial class Room
             RequestId = pendingUserMove.RequestId
         };
 
-        pendingUserMove = null;
+        pendingUserMoves.Remove(pendingUserMove.MoveId);
         
         await BroadcastAsync(result);
     }
