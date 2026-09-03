@@ -74,11 +74,10 @@ public partial class Room
     {
         if (session.Phase != SessionPhase.WaitingForTurnFinished) return;
         if (msg.TurnId != session.TurnId) return;
-        if (member.User.Id != msg.UserId) return;
 
         if (msg.MoveId == 0)
         {
-            if (msg.UserId != session.CurrentMemberId)
+            if (member.User.Id != session.CurrentMemberId)
                 return;
         }
         else
@@ -87,7 +86,7 @@ public partial class Room
                 return;
 
             if (pendingUserMove.TurnId != msg.TurnId) return;
-            if (pendingUserMove.UserId != msg.UserId) return;
+            if (pendingUserMove.UserId != member.User.Id) return;
         }
 
         await BroadcastAsync(msg);
@@ -153,11 +152,10 @@ public partial class Room
             WaitingMemberIds = members.Keys.ToHashSet()
         };
 
-        UserMovedToMessage result = new UserMovedToMessage
+        MoveUserToMessage result = new MoveUserToMessage
         {
             TurnId = msg.TurnId,
             MoveId = moveId,
-            RequestId = msg.RequestId,
             UserId = msg.UserId,
             TileId = msg.TileId
         };

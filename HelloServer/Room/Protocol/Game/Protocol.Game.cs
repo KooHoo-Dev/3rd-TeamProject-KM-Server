@@ -12,15 +12,6 @@ public struct EconomyUpdate
     public int Amount { get; set; }
 }
 
-public class UserTerritory
-{
-    public string UserId { get; set; }
-
-    public int SpaceId { get; set; }
-    public bool IsBuilt { get; set; }
-    public bool IsLandmark { get; set; }
-}
-
 #region CLIENT_TO_SERVER
 
 public class SetBoardReadyMessage
@@ -32,19 +23,6 @@ public class RollDiceMessage
 {
     public string Type { get; set; } = ProtocolHeader.ROLL_DICE;
     public int TurnId { get; set; }
-}
-
-public class TileEffectResolvedMessage
-{
-    public string Type { get; set; } = ProtocolHeader.TILE_EFFECT_RESOLVED;
-
-    public int TurnId { get; set; }
-
-    public long MoveId { get; set; }
-    public int StepIndex { get; set; }
-
-    public int TileId { get; set; }
-    public string UserId { get; set; }
 }
 
 public class DrawGoldCardMessage
@@ -67,40 +45,11 @@ public class UpdateEconomyMessage
     public EconomyUpdate[] Updates { get; set; }
 }
 
-public class BuyOrSellTerritoryMessage
-{
-    public string Type { get; set; } = ProtocolHeader.BUY_OR_SELL_TERRITORY;
-
-    public int TurnId { get; set; }
-    public int SpaceId { get; set; }
-    public bool IsBuy { get; set; } // true = buy, false = sell
-}
-
 public class AddIncapacitationCountMessage
 {
     public string Type { get; set; } = ProtocolHeader.ADD_INCAPACITATION_COUNT;
     
     public int Count { get; set; }
-}
-
-public class MoveUserToMessage
-{
-    public string Type { get; set; } = ProtocolHeader.MOVE_USER_TO;
-
-    public int TurnId { get; set; }
-    public string RequestId { get; set; }
-
-    public string UserId { get; set; }
-    public int TileId { get; set; }
-}
-
-public class UserMoveFinishedMessage
-{
-    public string Type { get; set; } = ProtocolHeader.USER_MOVE_FINISHED;
-    
-    public int TurnId { get; set; }
-    public long MoveId { get; set; }
-    public string RequestId { get; set; }
 }
 
 #endregion
@@ -148,22 +97,40 @@ public class EconomyUpdatedMessage
     public UserEconomy[] Economies { get; set; }
 }
 
-public class TerritoryUpdatedMessage
-{
-    public string Type { get; set; } = ProtocolHeader.TERRITORY_UPDATED;
-    public UserTerritory[] Territories { get; set; }
-}
+#endregion
 
-public class UserMovedToMessage
-{
-    public string Type { get; set; } = ProtocolHeader.USER_MOVED_TO;
+#region BI_DIRECTIONAL
 
+public class MoveUserToMessage
+{
+    public string Type { get; set; } = ProtocolHeader.MOVE_USER_TO;
+        
     public int TurnId { get; set; }
     public long MoveId { get; set; }
+        
     public string RequestId { get; set; }
-
+        
     public string UserId { get; set; }
     public int TileId { get; set; }
 }
 
+public class UserMoveFinishedMessage
+{
+    public string Type { get; set; } = ProtocolHeader.USER_MOVE_FINISHED;
+        
+    public int TurnId { get; set; }
+    public long MoveId { get; set; }
+        
+    public string RequestId { get; set; }
+}
+
+public class TileEffectResolvedMessage
+{
+    public string Type { get; set; } = ProtocolHeader.TILE_EFFECT_RESOLVED;
+        
+    public int TurnId { get; set; }
+    public long MoveId { get; set; }
+    public int StepIndex { get; set; }
+}
+    
 #endregion
