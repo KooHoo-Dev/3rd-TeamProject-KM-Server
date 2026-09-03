@@ -21,8 +21,6 @@ public class GameSession
     private readonly Dictionary<string, int> memberGolds = new();
     private readonly Dictionary<string, int> memberIncapacitationCounts = new();
     
-    private readonly Dictionary<int, UserTerritory> territories = new();
-    
     private int currentMemberIndex;
     
     public int RoundCount { get; private set; }
@@ -145,13 +143,7 @@ public class GameSession
         memberGolds[memberId] += amount;
         return true;
     }
-
-    public bool TryGetTerritory(int spaceId, out UserTerritory result) 
-        => territories.TryGetValue(spaceId, out result);
-
-    public IEnumerable<UserTerritory> GetTerritories(string memberId) 
-        => territories.Values.Where(t => t.UserId == memberId);
-
+    
     public void AddIncapacitationCount(string memberId, int count)
     {
         if (count < 0) return;
@@ -197,14 +189,6 @@ public class GameSession
                 })
                 .ToArray()
         };
-    }
-
-    public TerritoryUpdatedMessage CreateTerritoryUpdatedMessage()
-    {
-        return new TerritoryUpdatedMessage
-        {
-            Territories = territories.Values.ToArray()
-        };   
     }
     
     #endregion
