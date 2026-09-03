@@ -73,8 +73,7 @@ public class GameSession
 
         int d1 = Random.Shared.Next(1, 7);
         int d2 = Random.Shared.Next(1, 7);
-
-        turnFinishedMembers.Clear();
+        
         Phase = SessionPhase.WaitingForTurnFinished;
 
         return new DiceRolledMessage
@@ -105,8 +104,6 @@ public class GameSession
     
     public bool ReportTurnFinished(string memberId, int turnId)
     {
-        Console.WriteLine($"Turn Finished: {memberId} {turnId}");
-        
         if (Phase != SessionPhase.WaitingForTurnFinished) return false;
         if (turnId != TurnId) return false;
         if (memberIds.Contains(memberId) == false) return false;
@@ -162,12 +159,16 @@ public class GameSession
     
     public TurnStartedMessage CreateTurnStartedMessage()
     {
+        turnFinishedMembers.Clear();
+        
         int actionDisableCount = memberIncapacitationCounts[CurrentMemberId];
         bool canAct = actionDisableCount == 0;
 
         if (canAct == false)
         {
             memberIncapacitationCounts[CurrentMemberId]--;
+            
+            turnFinishedMembers.Clear();
             Phase = SessionPhase.WaitingForTurnFinished;
         }
         
