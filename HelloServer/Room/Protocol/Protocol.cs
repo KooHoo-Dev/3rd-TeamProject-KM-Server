@@ -76,9 +76,13 @@ public class TurnFinishedMessage
 public class UpdateEconomyMessage
 {
     public string Type { get; set; } = ProtocolHeader.UPDATE_ECONOMY;
-    
+    public EconomyUpdateInfo[] Updates { get; set; }
+}
+
+public struct EconomyUpdateInfo
+{
+    public string UserId { get; set; }
     public int Amount { get; set; }
-    public bool IsIncrease { get; set; }
 }
 
 public class BuyOrSellTerritoryMessage
