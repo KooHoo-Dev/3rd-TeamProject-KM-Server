@@ -92,6 +92,16 @@ public class GameSession
         };
     }
 
+    public bool TryBeginTurnWithoutRoll(string memberId, int turnId)
+    {
+        if (Phase != SessionPhase.WaitingForRoll) return false;
+        if (turnId != TurnId) return false;
+        if (memberId != CurrentMemberId) return false;
+
+        Phase = SessionPhase.WaitingForTurnFinished;
+        return true;
+    }
+
     public GoldCardDrawnMessage TryDrawGoldCard(string memberId, int turnId, int[] cardIds)
     {
         if (Phase != SessionPhase.WaitingForTurnFinished) return null;

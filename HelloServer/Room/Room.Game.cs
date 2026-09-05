@@ -9,6 +9,8 @@ public partial class Room
         public string RequestId;
         public string UserId;
 
+        public bool EndsTurnAfterMove;
+
         public HashSet<string> WaitingMemberIds = new();
     }
     
@@ -184,10 +186,20 @@ public partial class Room
 
     private async Task HandleUserMovedToAsync(Member member, MoveUserToMessage msg)
     {
-        if (session.Phase != SessionPhase.WaitingForTurnFinished) return;
         if (msg.TurnId != session.TurnId) return;
         if (member.User.Id != session.CurrentMemberId) return;
         if (members.ContainsKey(msg.UserId) == false) return;
+
+        bool endsTurnAfterMove = session.Phase == SessionPhase.WaitingForRoll;
+
+        if (endsTurnAfterMove)
+        {
+            if (session.TryBeginTurnWithoutRoll(member.User.Id, msg.TurnId) == false) return;
+        }
+        else if (session.Phase != SessionPhase.WaitingForTurnFinished)
+        {
+            return;
+        }
 
         long moveId = Interlocked.Increment(ref lastMoveId);
 
@@ -197,6 +209,7 @@ public partial class Room
             TurnId = msg.TurnId, 
             RequestId = msg.RequestId, 
             UserId = msg.UserId,
+            EndsTurnAfterMove = endsTurnAfterMove,
             WaitingMemberIds = members.Keys.ToHashSet()
         };
 
@@ -226,8 +239,28 @@ public partial class Room
         };
 
         pendingUserMoves.Remove(pendingUserMove.MoveId);
+
+        object turnResult = null;
+
+        if (pendingUserMove.EndsTurnAfterMove)
+        {
+            bool isAdvanced = false;
+
+            foreach (string memberId in members.Keys)
+                isAdvanced |= session.ReportTurnFinished(memberId, pendingUserMove.TurnId);
+
+            if (isAdvanced)
+            {
+                turnResult = session.Phase == SessionPhase.Ended
+                    ? new GameEndedMessage()
+                    : session.CreateTurnStartedMessage();
+            }
+        }
         
         await BroadcastAsync(result);
+
+        if (turnResult != null)
+            await BroadcastAsync(turnResult);
     }
 
     #endregion
