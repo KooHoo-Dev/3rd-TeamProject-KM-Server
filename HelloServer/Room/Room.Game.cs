@@ -31,6 +31,7 @@ public partial class Room
         RegisterGameHandler<MoveUserToMessage>(ProtocolHeader.MOVE_USER_TO, HandleUserMovedToAsync);
         RegisterGameHandler<UserMoveFinishedMessage>(ProtocolHeader.USER_MOVE_FINISHED, HandleUserMoveFinishedAsync);
         RegisterGameHandler<AddIncapacitationCountMessage>(ProtocolHeader.ADD_INCAPACITATION_COUNT, HandleAddIncapacitationCountAsync);
+        RegisterGameHandler<UpdateTerritoryMessage>(ProtocolHeader.UPDATE_TERRITORY, HandleUpdateTerritoryAsync);
     }
 
     private void RegisterGameHandler<T>(string type, Func<Member, T, Task> handler)
@@ -165,6 +166,20 @@ public partial class Room
     {
         session.AddIncapacitationCount(member.User.Id, msg.Count);
         return Task.CompletedTask;
+    }
+
+    private async Task HandleUpdateTerritoryAsync(Member member, UpdateTerritoryMessage msg)
+    {
+        int tileId = msg.TileId;
+        
+        session.UpdateTerritoryState(
+            tileId, 
+            msg.OwnerId, 
+            msg.HasBuilding, 
+            msg.HasLandMark);
+        
+        UpdateTerritoryMessage result = session.CreateTerritoryUpdatedMessage(tileId);
+        await BroadcastAsync(result);
     }
 
     private async Task HandleUserMovedToAsync(Member member, MoveUserToMessage msg)

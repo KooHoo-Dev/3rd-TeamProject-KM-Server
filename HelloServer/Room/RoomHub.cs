@@ -85,8 +85,7 @@ public class RoomHub
     // 아래의 비동기 함수는 한 사람의 접속부터 끊김까지
     // 방을 찾아 넘기고, 끝나면 뒷정리하는 함수 입니다.
     // (RoomHub -> Room의 함수를 호출)
-    public async Task HandleAsync(string code, 
-        WebSocket socket, CancellationToken token)
+    public async Task HandleAsync(string code, WebSocket socket, CancellationToken token)
     {
         Room room = Enter(code);
         // lastId를 여러 접속자가 동시에 수정 할수 있으므로

@@ -12,6 +12,12 @@ public struct EconomyUpdate
     public int Amount { get; set; }
 }
 
+public enum TileEffectSyncPhase
+{
+    Ready = 0,
+    Resolved = 1
+}
+
 #region CLIENT_TO_SERVER
 
 public class SetBoardReadyMessage
@@ -124,12 +130,6 @@ public class UserMoveFinishedMessage
     public string RequestId { get; set; }
 }
 
-public enum TileEffectSyncPhase
-{
-    Ready = 0,
-    Resolved = 1
-}
-
 public class TileEffectSyncMessage
 {
     public string Type { get; set; } = ProtocolHeader.TILE_EFFECT_SYNC;
@@ -138,6 +138,17 @@ public class TileEffectSyncMessage
     public long MoveId { get; set; }
     public int StepIndex { get; set; }
     public TileEffectSyncPhase Phase { get; set; }
+}
+
+public class UpdateTerritoryMessage
+{
+    public string Type { get; set; } = ProtocolHeader.UPDATE_TERRITORY;
+
+    public int TileId { get; set; }
+        
+    public string OwnerId { get; set; }
+    public bool HasBuilding { get; set; }
+    public bool HasLandMark { get; set; }
 }
     
 #endregion

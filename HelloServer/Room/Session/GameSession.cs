@@ -10,6 +10,13 @@ public enum SessionPhase
 
 public class GameSession
 {
+    private class TerritoryState
+    {
+        public string OwnerId;
+        public bool HasBuilding;
+        public bool HasLandMark;
+    }
+    
     private const int MAX_ROUND_COUNT = 20;
     private const int INITIAL_GOLD = 100000;
     
@@ -20,6 +27,8 @@ public class GameSession
 
     private readonly Dictionary<string, int> memberGolds = new();
     private readonly Dictionary<string, int> memberIncapacitationCounts = new();
+
+    private readonly Dictionary<int, TerritoryState> territoryStates = new();
     
     private int currentMemberIndex;
     
@@ -149,6 +158,18 @@ public class GameSession
         if (count < 0) return;
         memberIncapacitationCounts[memberId] += count;
     }
+
+    public void UpdateTerritoryState(int tileId, string ownerId, bool hasBuilding, bool hasLandMark)
+    {
+        TerritoryState state = new TerritoryState
+        {
+            OwnerId = ownerId,
+            HasBuilding = hasBuilding,
+            HasLandMark = hasLandMark
+        };
+
+        territoryStates[tileId] = state;
+    }
     
     #region CREATE_MESSAGE
     
@@ -188,6 +209,19 @@ public class GameSession
                     Gold = memberGolds[id]
                 })
                 .ToArray()
+        };
+    }
+
+    public UpdateTerritoryMessage CreateTerritoryUpdatedMessage(int tileId)
+    {
+        TerritoryState state = territoryStates[tileId];
+
+        return new UpdateTerritoryMessage
+        {
+            TileId = tileId, 
+            OwnerId = state.OwnerId, 
+            HasBuilding = state.HasBuilding, 
+            HasLandMark = state.HasLandMark
         };
     }
     

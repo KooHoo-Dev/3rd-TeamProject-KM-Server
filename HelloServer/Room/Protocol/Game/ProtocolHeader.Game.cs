@@ -20,6 +20,7 @@ public static partial class ProtocolHeader
     public const string MOVE_USER_TO = "moveUserTo";
     public const string USER_MOVE_FINISHED = "userMoveFinished";
     public const string TILE_EFFECT_SYNC = "tileEffectSync";
+    public const string UPDATE_TERRITORY = "updateTerritory";
 
     #endregion
 
