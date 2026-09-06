@@ -96,6 +96,7 @@ public partial class Room
             
             members.Remove(id, out _);
             memberOrder.Remove(id);
+            session?.RemoveInventory(id);
 
             LeaveMessage msg = new LeaveMessage { Id = id };
             await BroadcastAsync(msg, id);

@@ -34,6 +34,9 @@ public partial class Room
         RegisterGameHandler<UserMoveFinishedMessage>(ProtocolHeader.USER_MOVE_FINISHED, HandleUserMoveFinishedAsync);
         RegisterGameHandler<AddIncapacitationCountMessage>(ProtocolHeader.ADD_INCAPACITATION_COUNT, HandleAddIncapacitationCountAsync);
         RegisterGameHandler<UpdateTerritoryMessage>(ProtocolHeader.UPDATE_TERRITORY, HandleUpdateTerritoryAsync);
+        RegisterGameHandler<SetEquipmentMessage>(ProtocolHeader.SET_EQUIPMENT, HandleSetEquipmentAsync);
+        RegisterGameHandler<RemoveEquipmentMessage>(ProtocolHeader.REMOVE_EQUIPMENT, HandleRemoveEquipmentAsync);
+        RegisterGameHandler<ApplyTreasureMessage>(ProtocolHeader.APPLY_TREASURE, HandleApplyTreasureAsync);
     }
 
     private void RegisterGameHandler<T>(string type, Func<Member, T, Task> handler)
@@ -182,6 +185,32 @@ public partial class Room
         
         UpdateTerritoryMessage result = session.CreateTerritoryUpdatedMessage(tileId);
         await BroadcastAsync(result);
+    }
+
+    private async Task HandleSetEquipmentAsync(Member member, SetEquipmentMessage message)
+    {
+        string memberId = member.User.Id;
+        if (session.TrySetEquipment(memberId, message) == false) return;
+
+        await BroadcastAsync(session.CreateInventoryUpdatedMessage(memberId));
+    }
+
+    private async Task HandleRemoveEquipmentAsync(Member member, RemoveEquipmentMessage message)
+    {
+        string memberId = member.User.Id;
+        if (session.TryRemoveEquipment(memberId, message) == false) return;
+
+        await BroadcastAsync(session.CreateInventoryUpdatedMessage(memberId));
+    }
+
+    private async Task HandleApplyTreasureAsync(Member member, ApplyTreasureMessage message)
+    {
+        if (member.User.Id != session.CurrentMemberId) return;
+        if (members.ContainsKey(message.TargetId) == false) return;
+        if (message.EffectType == GoldCardTreasureEffectType.Gain && message.EquipmentId <= 0) return;
+        if (message.EffectType is not (GoldCardTreasureEffectType.Gain or GoldCardTreasureEffectType.Lose)) return;
+
+        await BroadcastAsync(message);
     }
 
     private async Task HandleUserMovedToAsync(Member member, MoveUserToMessage msg)

@@ -12,6 +12,8 @@ public static partial class ProtocolHeader
     public const string DRAW_GOLD_CARD = "drawGoldCard";
     public const string ADD_INCAPACITATION_COUNT = "addIncapacitationCount";
     public const string TURN_FINISHED = "turnFinished";
+    public const string SET_EQUIPMENT = "setEquipment";
+    public const string REMOVE_EQUIPMENT = "removeEquipment";
 
     #endregion
 
@@ -21,6 +23,7 @@ public static partial class ProtocolHeader
     public const string USER_MOVE_FINISHED = "userMoveFinished";
     public const string TILE_EFFECT_SYNC = "tileEffectSync";
     public const string UPDATE_TERRITORY = "updateTerritory";
+    public const string APPLY_TREASURE = "applyTreasure";
 
     #endregion
 
@@ -31,6 +34,7 @@ public static partial class ProtocolHeader
     public const string ECONOMY_UPDATED = "economyUpdated";
     
     public const string GOLD_CARD_DRAWN = "goldCardDrawn";
+    public const string INVENTORY_UPDATED = "inventoryUpdated";
 
     public const string GAME_ENDED = "gameEnded";
 

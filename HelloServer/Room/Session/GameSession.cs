@@ -19,6 +19,7 @@ public class GameSession
     
     private const int MAX_ROUND_COUNT = 20;
     private const int INITIAL_GOLD = 100000;
+    private const int EQUIPMENT_SLOT_COUNT = 5;
     
     private readonly string[] memberIds;
 
@@ -27,6 +28,7 @@ public class GameSession
 
     private readonly Dictionary<string, int> memberGolds = new();
     private readonly Dictionary<string, int> memberIncapacitationCounts = new();
+    private readonly Dictionary<string, EquipmentSlotState[]> memberInventories = new();
 
     private readonly Dictionary<int, TerritoryState> territoryStates = new();
     
@@ -50,6 +52,7 @@ public class GameSession
             string id = memberIds[i];
             memberGolds[id] = INITIAL_GOLD;
             memberIncapacitationCounts[id] = 0;
+            memberInventories[id] = new EquipmentSlotState[EQUIPMENT_SLOT_COUNT];
         }
     }
 
@@ -180,6 +183,43 @@ public class GameSession
 
         territoryStates[tileId] = state;
     }
+
+    public bool TrySetEquipment(string memberId, SetEquipmentMessage message)
+    {
+        if (memberInventories.TryGetValue(memberId, out EquipmentSlotState[] slots) == false) return false;
+        if (message.InstanceId <= 0 || message.EquipmentId <= 0) return false;
+        if (message.SlotIndex < 0 || message.SlotIndex >= EQUIPMENT_SLOT_COUNT) return false;
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            if (i != message.SlotIndex && slots[i]?.InstanceId == message.InstanceId)
+                return false;
+        }
+
+        slots[message.SlotIndex] = new EquipmentSlotState
+        {
+            InstanceId = message.InstanceId,
+            EquipmentId = message.EquipmentId,
+            SlotIndex = message.SlotIndex
+        };
+
+        return true;
+    }
+
+    public bool TryRemoveEquipment(string memberId, RemoveEquipmentMessage message)
+    {
+        if (memberInventories.TryGetValue(memberId, out EquipmentSlotState[] slots) == false) return false;
+        if (message.SlotIndex < 0 || message.SlotIndex >= EQUIPMENT_SLOT_COUNT) return false;
+        if (slots[message.SlotIndex]?.InstanceId != message.InstanceId) return false;
+
+        slots[message.SlotIndex] = null;
+        return true;
+    }
+
+    public void RemoveInventory(string memberId)
+    {
+        memberInventories.Remove(memberId);
+    }
     
     #region CREATE_MESSAGE
     
@@ -232,6 +272,17 @@ public class GameSession
             OwnerId = state.OwnerId, 
             HasBuilding = state.HasBuilding, 
             HasLandMark = state.HasLandMark
+        };
+    }
+
+    public InventoryUpdatedMessage CreateInventoryUpdatedMessage(string memberId)
+    {
+        return new InventoryUpdatedMessage
+        {
+            UserId = memberId,
+            Equipments = memberInventories[memberId]
+                .Where(equipment => equipment != null)
+                .ToArray()
         };
     }
     

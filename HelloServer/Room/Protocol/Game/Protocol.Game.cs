@@ -12,10 +12,23 @@ public struct EconomyUpdate
     public int Amount { get; set; }
 }
 
+public class EquipmentSlotState
+{
+    public int InstanceId { get; set; }
+    public int EquipmentId { get; set; }
+    public int SlotIndex { get; set; }
+}
+
 public enum TileEffectSyncPhase
 {
     Ready = 0,
     Resolved = 1
+}
+
+public enum GoldCardTreasureEffectType
+{
+    Gain,
+    Lose
 }
 
 #region CLIENT_TO_SERVER
@@ -56,6 +69,23 @@ public class AddIncapacitationCountMessage
     public string Type { get; set; } = ProtocolHeader.ADD_INCAPACITATION_COUNT;
     
     public int Count { get; set; }
+}
+
+public class SetEquipmentMessage
+{
+    public string Type { get; set; } = ProtocolHeader.SET_EQUIPMENT;
+
+    public int InstanceId { get; set; }
+    public int EquipmentId { get; set; }
+    public int SlotIndex { get; set; }
+}
+
+public class RemoveEquipmentMessage
+{
+    public string Type { get; set; } = ProtocolHeader.REMOVE_EQUIPMENT;
+
+    public int InstanceId { get; set; }
+    public int SlotIndex { get; set; }
 }
 
 #endregion
@@ -101,6 +131,13 @@ public class EconomyUpdatedMessage
 {
     public string Type { get; set; } = ProtocolHeader.ECONOMY_UPDATED;
     public UserEconomy[] Economies { get; set; }
+}
+
+public class InventoryUpdatedMessage
+{
+    public string Type { get; set; } = ProtocolHeader.INVENTORY_UPDATED;
+    public string UserId { get; set; }
+    public EquipmentSlotState[] Equipments { get; set; }
 }
 
 #endregion
@@ -150,5 +187,14 @@ public class UpdateTerritoryMessage
     public bool HasBuilding { get; set; }
     public bool HasLandMark { get; set; }
 }
-    
+
+public class ApplyTreasureMessage
+{
+    public string Type { get; set; } = ProtocolHeader.APPLY_TREASURE;
+
+    public string TargetId { get; set; }
+    public GoldCardTreasureEffectType EffectType { get; set; }
+    public int EquipmentId { get; set; }
+}
+
 #endregion
