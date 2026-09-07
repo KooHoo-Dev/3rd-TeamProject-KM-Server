@@ -34,7 +34,8 @@ public enum GoldCardTreasureEffectType
 public enum PlayerActivityType
 {
     None = 0,
-    Shop = 1
+    Shop = 1,
+    TerritoryPurchase = 2
 }
 
 #region CLIENT_TO_SERVER
