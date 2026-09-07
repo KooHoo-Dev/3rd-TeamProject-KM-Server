@@ -36,7 +36,8 @@ public enum PlayerActivityType
     None = 0,
     Shop = 1,
     TerritoryPurchase = 2,
-    Treasure = 3
+    Treasure = 3,
+    Combat = 4
 }
 
 #region CLIENT_TO_SERVER

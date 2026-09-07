@@ -29,6 +29,7 @@ public partial class Room
 
     private void RegisterGameHandlers()
     {
+        RegisterCombatHandlers();
         RegisterGameHandler<SetBoardReadyMessage>(ProtocolHeader.SET_BOARD_READY, HandleSetBoardReadyAsync);
         RegisterGameHandler<RollDiceMessage>(ProtocolHeader.ROLL_DICE, HandleRollDiceAsync);
         RegisterGameHandler<TileEffectSyncMessage>(ProtocolHeader.TILE_EFFECT_SYNC, HandleTileEffectSyncAsync);

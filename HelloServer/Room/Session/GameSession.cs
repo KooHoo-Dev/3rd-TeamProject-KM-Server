@@ -184,6 +184,12 @@ public class GameSession
         territoryStates[tileId] = state;
     }
 
+    public bool IsTerritoryOwnedBy(int tileId, string ownerId)
+    {
+        return territoryStates.TryGetValue(tileId, out TerritoryState state) &&
+               state.OwnerId == ownerId;
+    }
+
     public bool TrySetEquipment(string memberId, SetEquipmentMessage message)
     {
         if (memberInventories.TryGetValue(memberId, out EquipmentSlotState[] slots) == false) return false;
