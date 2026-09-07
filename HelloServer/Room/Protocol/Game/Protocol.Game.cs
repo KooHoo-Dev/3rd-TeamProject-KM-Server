@@ -212,4 +212,19 @@ public class PlayerActivityMessage
     public PlayerActivityType Activity { get; set; }
 }
 
+public class RevealGoldCardMessage
+{
+    public string Type { get; set; } = ProtocolHeader.REVEAL_GOLD_CARD;
+
+    public int TurnId { get; set; }
+    public string PlayerId { get; set; }
+}
+
+public class GoldCardPresentationFinishedMessage
+{
+    public string Type { get; set; } = ProtocolHeader.GOLD_CARD_PRESENTATION_FINISHED;
+
+    public int TurnId { get; set; }
+}
+
 #endregion

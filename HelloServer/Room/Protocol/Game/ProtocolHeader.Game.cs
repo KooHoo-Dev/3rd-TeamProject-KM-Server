@@ -25,6 +25,8 @@ public static partial class ProtocolHeader
     public const string UPDATE_TERRITORY = "updateTerritory";
     public const string APPLY_TREASURE = "applyTreasure";
     public const string PLAYER_ACTIVITY = "playerActivity";
+    public const string REVEAL_GOLD_CARD = "revealGoldCard";
+    public const string GOLD_CARD_PRESENTATION_FINISHED = "goldCardPresentationFinished";
 
     #endregion
 

@@ -21,6 +21,10 @@ public partial class Room
     private readonly Dictionary<long, PendingUserMove> pendingUserMoves = new();
     private readonly Dictionary<string, HashSet<string>> tileEffectReadyMembers = new();
 
+    private int goldCardDrawnTurnId = -1;
+    private int goldCardPresentationTurnId = -1;
+    private HashSet<string> goldCardPresentationWaitingMembers;
+
     private void RegisterGameHandlers()
     {
         RegisterGameHandler<SetBoardReadyMessage>(ProtocolHeader.SET_BOARD_READY, HandleSetBoardReadyAsync);
@@ -29,6 +33,10 @@ public partial class Room
         RegisterGameHandler<TurnFinishedMessage>(ProtocolHeader.TURN_FINISHED, HandleTurnFinishedAsync);
         
         RegisterGameHandler<DrawGoldCardMessage>(ProtocolHeader.DRAW_GOLD_CARD, HandleDrawGoldCardAsync);
+        RegisterGameHandler<RevealGoldCardMessage>(ProtocolHeader.REVEAL_GOLD_CARD, HandleRevealGoldCardAsync);
+        RegisterGameHandler<GoldCardPresentationFinishedMessage>(
+            ProtocolHeader.GOLD_CARD_PRESENTATION_FINISHED,
+            HandleGoldCardPresentationFinishedAsync);
         RegisterGameHandler<UpdateEconomyMessage>(ProtocolHeader.UPDATE_ECONOMY, HandleUpdateEconomyAsync);
         RegisterGameHandler<MoveUserToMessage>(ProtocolHeader.MOVE_USER_TO, HandleUserMovedToAsync);
         RegisterGameHandler<UserMoveFinishedMessage>(ProtocolHeader.USER_MOVE_FINISHED, HandleUserMoveFinishedAsync);
@@ -134,10 +142,52 @@ public partial class Room
 
     private async Task HandleDrawGoldCardAsync(Member member, DrawGoldCardMessage msg)
     {
+        if (goldCardDrawnTurnId >= 0) return;
+
         GoldCardDrawnMessage result = 
             session.TryDrawGoldCard(member.User.Id, msg.TurnId, msg.CardIds);
-        
-        if (result != null) await BroadcastAsync(result);
+
+        if (result == null) return;
+
+        goldCardDrawnTurnId = result.TurnId;
+        await BroadcastAsync(result);
+    }
+
+    private async Task HandleRevealGoldCardAsync(Member member, RevealGoldCardMessage msg)
+    {
+        if (session.Phase != SessionPhase.WaitingForTurnFinished) return;
+        if (msg.TurnId != session.TurnId) return;
+        if (member.User.Id != session.CurrentMemberId) return;
+        if (goldCardDrawnTurnId != msg.TurnId) return;
+        if (goldCardPresentationWaitingMembers != null) return;
+
+        goldCardPresentationTurnId = msg.TurnId;
+        goldCardPresentationWaitingMembers = members.Keys.ToHashSet();
+
+        await BroadcastAsync(new RevealGoldCardMessage
+        {
+            TurnId = msg.TurnId,
+            PlayerId = member.User.Id
+        });
+    }
+
+    private async Task HandleGoldCardPresentationFinishedAsync(
+        Member member,
+        GoldCardPresentationFinishedMessage msg)
+    {
+        if (msg.TurnId != goldCardPresentationTurnId) return;
+        if (goldCardPresentationWaitingMembers == null) return;
+        if (goldCardPresentationWaitingMembers.Remove(member.User.Id) == false) return;
+        if (goldCardPresentationWaitingMembers.Count > 0) return;
+
+        goldCardPresentationWaitingMembers = null;
+        goldCardPresentationTurnId = -1;
+        goldCardDrawnTurnId = -1;
+
+        await BroadcastAsync(new GoldCardPresentationFinishedMessage
+        {
+            TurnId = msg.TurnId
+        });
     }
 
     private async Task HandleTurnFinishedAsync(Member member, TurnFinishedMessage msg)
