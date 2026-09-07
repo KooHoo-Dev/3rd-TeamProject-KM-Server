@@ -39,6 +39,9 @@ public partial class Room
         RegisterGameHandler<CombatReadyMessage>(
             ProtocolHeader.COMBAT_READY,
             HandleCombatReadyAsync);
+        RegisterGameHandler<CombatPositionMessage>(
+            ProtocolHeader.COMBAT_POSITION,
+            HandleCombatPositionAsync);
         RegisterGameHandler<SkillCastMessage>(
             ProtocolHeader.SKILL_CAST,
             HandleSkillCastAsync);
@@ -145,6 +148,17 @@ public partial class Room
         });
 
         _ = RunCombatTimeoutAsync(activeCombat.CombatId);
+    }
+
+    private async Task HandleCombatPositionAsync(Member member, CombatPositionMessage message)
+    {
+        if (activeCombat == null || activeCombat.State != CombatState.Fighting) return;
+        if (message.CombatId != activeCombat.CombatId) return;
+        if (!IsCombatant(activeCombat, member.User.Id)) return;
+        if (!float.IsFinite(message.X)) return;
+
+        message.PlayerId = member.User.Id;
+        await SendToCombatantsAsync(activeCombat, message);
     }
 
     private async Task HandleSkillCastAsync(Member member, SkillCastMessage message)

@@ -5,6 +5,7 @@ public static partial class ProtocolHeader
     public const string COMBAT_REQUEST = "combatRequest";
     public const string COMBAT_RESPONSE = "combatResponse";
     public const string COMBAT_READY = "combatReady";
+    public const string COMBAT_POSITION = "combatPosition";
     public const string SKILL_CAST = "skillCast";
     public const string COMBAT_HEALTH_REPORT = "combatHealthReport";
 

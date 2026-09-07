@@ -59,6 +59,14 @@ public class CombatStartedMessage
     public string CombatId { get; set; }
 }
 
+public class CombatPositionMessage
+{
+    public string Type { get; set; } = ProtocolHeader.COMBAT_POSITION;
+    public string CombatId { get; set; }
+    public string PlayerId { get; set; }
+    public float X { get; set; }
+}
+
 public class SkillCastMessage
 {
     public string Type { get; set; } = ProtocolHeader.SKILL_CAST;
