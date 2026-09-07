@@ -18,7 +18,7 @@ public class GameSession
     }
     
     private const int MAX_ROUND_COUNT = 20;
-    private const int INITIAL_GOLD = 100000;
+    private const int INITIAL_GOLD = 5000000;
     private const int EQUIPMENT_SLOT_COUNT = 5;
     
     private readonly string[] memberIds;
