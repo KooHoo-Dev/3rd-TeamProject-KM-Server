@@ -43,6 +43,16 @@ public partial class Room
 
         try
         {
+            if (isGameStarted)
+            {
+                await connection.CloseAsync(
+                    WebSocketCloseStatus.PolicyViolation,
+                    "Game already started.",
+                    token);
+
+                return null;
+            }
+
             if (members.Count >= MAX_MEMBERS)
             {
                 Console.WriteLine(
@@ -57,17 +67,22 @@ public partial class Room
                 return null;
             }
 
+            int playerNumber = 0;
+            while (members.Values.Any(m => m.User.PlayerNumber == playerNumber))
+                playerNumber++;
+
+            member.User.PlayerNumber = playerNumber;
             member.User.IsHost = members.Count == 0;
 
-            List<User> joined = members.Values
-                .Select(m => m.User)
-                .ToList();
+            User[] joined = memberOrder
+                .Select(memberId => members[memberId].User)
+                .ToArray();
 
             WelcomeMessage msg = new WelcomeMessage
             {
                 RoomCode = code,
                 User = member.User,
-                Users = joined.ToArray()
+                Users = joined
             };
             await SendAsync(member, msg);
 
