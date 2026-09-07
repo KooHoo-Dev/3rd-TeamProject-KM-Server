@@ -35,7 +35,8 @@ public enum PlayerActivityType
 {
     None = 0,
     Shop = 1,
-    TerritoryPurchase = 2
+    TerritoryPurchase = 2,
+    Treasure = 3
 }
 
 #region CLIENT_TO_SERVER
@@ -199,9 +200,18 @@ public class ApplyTreasureMessage
 {
     public string Type { get; set; } = ProtocolHeader.APPLY_TREASURE;
 
+    public string RequestId { get; set; }
     public string TargetId { get; set; }
     public GoldCardTreasureEffectType EffectType { get; set; }
     public int EquipmentId { get; set; }
+}
+
+public class TreasureResolvedMessage
+{
+    public string Type { get; set; } = ProtocolHeader.TREASURE_RESOLVED;
+
+    public string RequestId { get; set; }
+    public string TargetId { get; set; }
 }
 
 public class PlayerActivityMessage

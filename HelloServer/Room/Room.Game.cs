@@ -25,6 +25,8 @@ public partial class Room
     private int goldCardPresentationTurnId = -1;
     private HashSet<string> goldCardPresentationWaitingMembers;
 
+    private readonly Dictionary<string, string> pendingTreasureTargets = new();
+
     private void RegisterGameHandlers()
     {
         RegisterGameHandler<SetBoardReadyMessage>(ProtocolHeader.SET_BOARD_READY, HandleSetBoardReadyAsync);
@@ -45,6 +47,7 @@ public partial class Room
         RegisterGameHandler<SetEquipmentMessage>(ProtocolHeader.SET_EQUIPMENT, HandleSetEquipmentAsync);
         RegisterGameHandler<RemoveEquipmentMessage>(ProtocolHeader.REMOVE_EQUIPMENT, HandleRemoveEquipmentAsync);
         RegisterGameHandler<ApplyTreasureMessage>(ProtocolHeader.APPLY_TREASURE, HandleApplyTreasureAsync);
+        RegisterGameHandler<TreasureResolvedMessage>(ProtocolHeader.TREASURE_RESOLVED, HandleTreasureResolvedAsync);
         RegisterGameHandler<PlayerActivityMessage>(ProtocolHeader.PLAYER_ACTIVITY, HandlePlayerActivityAsync);
     }
 
@@ -257,11 +260,29 @@ public partial class Room
     private async Task HandleApplyTreasureAsync(Member member, ApplyTreasureMessage message)
     {
         if (member.User.Id != session.CurrentMemberId) return;
+        if (string.IsNullOrWhiteSpace(message.RequestId)) return;
+        if (pendingTreasureTargets.ContainsKey(message.RequestId)) return;
         if (members.ContainsKey(message.TargetId) == false) return;
         if (message.EffectType == GoldCardTreasureEffectType.Gain && message.EquipmentId <= 0) return;
         if (message.EffectType is not (GoldCardTreasureEffectType.Gain or GoldCardTreasureEffectType.Lose)) return;
 
+        pendingTreasureTargets.Add(message.RequestId, message.TargetId);
         await BroadcastAsync(message);
+    }
+
+    private async Task HandleTreasureResolvedAsync(Member member, TreasureResolvedMessage message)
+    {
+        if (string.IsNullOrWhiteSpace(message.RequestId)) return;
+        if (pendingTreasureTargets.TryGetValue(message.RequestId, out string targetId) == false) return;
+        if (targetId != member.User.Id) return;
+
+        pendingTreasureTargets.Remove(message.RequestId);
+
+        await BroadcastAsync(new TreasureResolvedMessage
+        {
+            RequestId = message.RequestId,
+            TargetId = member.User.Id
+        });
     }
 
     private async Task HandlePlayerActivityAsync(Member member, PlayerActivityMessage message)
