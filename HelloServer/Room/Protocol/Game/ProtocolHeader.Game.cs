@@ -24,6 +24,7 @@ public static partial class ProtocolHeader
     public const string TILE_EFFECT_SYNC = "tileEffectSync";
     public const string UPDATE_TERRITORY = "updateTerritory";
     public const string APPLY_TREASURE = "applyTreasure";
+    public const string PLAYER_ACTIVITY = "playerActivity";
 
     #endregion
 

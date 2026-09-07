@@ -37,6 +37,7 @@ public partial class Room
         RegisterGameHandler<SetEquipmentMessage>(ProtocolHeader.SET_EQUIPMENT, HandleSetEquipmentAsync);
         RegisterGameHandler<RemoveEquipmentMessage>(ProtocolHeader.REMOVE_EQUIPMENT, HandleRemoveEquipmentAsync);
         RegisterGameHandler<ApplyTreasureMessage>(ProtocolHeader.APPLY_TREASURE, HandleApplyTreasureAsync);
+        RegisterGameHandler<PlayerActivityMessage>(ProtocolHeader.PLAYER_ACTIVITY, HandlePlayerActivityAsync);
     }
 
     private void RegisterGameHandler<T>(string type, Func<Member, T, Task> handler)
@@ -211,6 +212,19 @@ public partial class Room
         if (message.EffectType is not (GoldCardTreasureEffectType.Gain or GoldCardTreasureEffectType.Lose)) return;
 
         await BroadcastAsync(message);
+    }
+
+    private async Task HandlePlayerActivityAsync(Member member, PlayerActivityMessage message)
+    {
+        if (Enum.IsDefined(typeof(PlayerActivityType), message.Activity) == false) return;
+
+        PlayerActivityMessage result = new()
+        {
+            PlayerId = member.User.Id,
+            Activity = message.Activity
+        };
+
+        await BroadcastAsync(result, member.User.Id);
     }
 
     private async Task HandleUserMovedToAsync(Member member, MoveUserToMessage msg)

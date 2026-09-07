@@ -31,6 +31,12 @@ public enum GoldCardTreasureEffectType
     Lose
 }
 
+public enum PlayerActivityType
+{
+    None = 0,
+    Shop = 1
+}
+
 #region CLIENT_TO_SERVER
 
 public class SetBoardReadyMessage
@@ -195,6 +201,14 @@ public class ApplyTreasureMessage
     public string TargetId { get; set; }
     public GoldCardTreasureEffectType EffectType { get; set; }
     public int EquipmentId { get; set; }
+}
+
+public class PlayerActivityMessage
+{
+    public string Type { get; set; } = ProtocolHeader.PLAYER_ACTIVITY;
+
+    public string PlayerId { get; set; }
+    public PlayerActivityType Activity { get; set; }
 }
 
 #endregion
