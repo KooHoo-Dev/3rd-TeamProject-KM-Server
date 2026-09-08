@@ -48,6 +48,7 @@ public class LeaveMessage
 {
     public string Type { get; set; } = ProtocolHeader.LEAVE;
     public string Id { get; set; }
+    public string NewHostId { get; set; }
 }
 
 #endregion

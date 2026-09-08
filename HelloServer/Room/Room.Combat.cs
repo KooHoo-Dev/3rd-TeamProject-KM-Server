@@ -26,6 +26,13 @@ public partial class Room
         public HashSet<string> ReadyMemberIds = new();
     }
 
+    private sealed class CombatDepartureResult
+    {
+        public string WinnerId;
+        public string AttackerId;
+        public int TileId;
+    }
+
     private ActiveCombat activeCombat;
 
     private void RegisterCombatHandlers()
@@ -225,6 +232,39 @@ public partial class Room
         {
             gate.Release();
         }
+    }
+
+    private async Task<CombatDepartureResult> ResolveCombatDepartureAsync(string memberId)
+    {
+        if (activeCombat == null || !IsCombatant(activeCombat, memberId)) return null;
+
+        ActiveCombat combat = activeCombat;
+
+        if (combat.State == CombatState.Offered)
+        {
+            activeCombat = null;
+            await SendToCombatantsAsync(combat, new CombatCancelledMessage
+            {
+                CombatId = combat.CombatId,
+                RequestId = combat.RequestId,
+                Reason = "A combatant left the room."
+            });
+
+            return null;
+        }
+
+        string winnerId = memberId == combat.AttackerId
+            ? combat.DefenderId
+            : combat.AttackerId;
+
+        await FinishCombatAsync(combat, memberId);
+
+        return new CombatDepartureResult
+        {
+            WinnerId = winnerId,
+            AttackerId = combat.AttackerId,
+            TileId = combat.TileId
+        };
     }
 
     private async Task FinishCombatAsync(ActiveCombat combat, string loserId)

@@ -8,6 +8,15 @@ public enum SessionPhase
     Ended
 }
 
+public sealed class MemberRemovalResult
+{
+    public bool Removed { get; init; }
+    public bool ShouldBroadcastTurnStarted { get; init; }
+    public bool GameEnded { get; init; }
+    public string WinnerId { get; init; }
+    public int[] ClearedTerritoryIds { get; init; } = Array.Empty<int>();
+}
+
 public class GameSession
 {
     private class TerritoryState
@@ -21,7 +30,7 @@ public class GameSession
     private const int INITIAL_GOLD = 5000000;
     private const int EQUIPMENT_SLOT_COUNT = 5;
     
-    private readonly string[] memberIds;
+    private readonly List<string> memberIds;
 
     private readonly HashSet<string> readyMembers = new();
     private readonly HashSet<string> turnFinishedMembers = new();
@@ -38,13 +47,15 @@ public class GameSession
     public int TurnId { get; private set; }
 
     public SessionPhase Phase { get; private set; } = SessionPhase.WaitingForBoards;
+    public int MemberCount => memberIds.Count;
     
     public string CurrentMemberId => memberIds[currentMemberIndex];
 
     public GameSession(string[] memberIds)
     {
-        this.memberIds = (string[])memberIds.Clone();
-        Random.Shared.Shuffle(this.memberIds); // 일단 초기 구현에서는 랜덤 순서 배정으로 둠
+        string[] shuffledMemberIds = (string[])memberIds.Clone();
+        Random.Shared.Shuffle(shuffledMemberIds); // 일단 초기 구현에서는 랜덤 순서 배정으로 둠
+        this.memberIds = shuffledMemberIds.ToList();
 
         // 서버에 초기 자금 업데이트
         for (int i = 0; i < memberIds.Length; i++)
@@ -63,7 +74,7 @@ public class GameSession
         if (Phase != SessionPhase.WaitingForBoards) return false;
         if (memberIds.Contains(memberId) == false) return false;
         if (readyMembers.Add(memberId) == false) return false;
-        if (readyMembers.Count != memberIds.Length) return false;
+        if (readyMembers.Count != memberIds.Count) return false;
 
         currentMemberIndex = 0;
         
@@ -128,19 +139,127 @@ public class GameSession
         if (turnId != TurnId) return false;
         if (memberIds.Contains(memberId) == false) return false;
         if (turnFinishedMembers.Add(memberId) == false) return false;
-        if (turnFinishedMembers.Count != memberIds.Length) return false;
+        if (turnFinishedMembers.Count != memberIds.Count) return false;
         
-        bool isLastMember = currentMemberIndex == memberIds.Length - 1;
+        AdvanceTurn();
+        return true;
+    }
+
+    public MemberRemovalResult RemoveMember(string memberId)
+    {
+        int removedIndex = memberIds.IndexOf(memberId);
+        if (removedIndex < 0) return new MemberRemovalResult();
+
+        SessionPhase previousPhase = Phase;
+        bool removedCurrentMember = previousPhase is not (SessionPhase.WaitingForBoards or SessionPhase.Ended) &&
+                                    removedIndex == currentMemberIndex;
+        bool removedLastMemberInOrder = removedIndex == memberIds.Count - 1;
+
+        memberIds.RemoveAt(removedIndex);
+        readyMembers.Remove(memberId);
+        turnFinishedMembers.Remove(memberId);
+        memberGolds.Remove(memberId);
+        memberIncapacitationCounts.Remove(memberId);
+        memberInventories.Remove(memberId);
+
+        List<int> clearedTerritoryIds = new();
+        foreach ((int tileId, TerritoryState state) in territoryStates)
+        {
+            if (state.OwnerId != memberId) continue;
+
+            state.OwnerId = string.Empty;
+            state.HasBuilding = false;
+            state.HasLandMark = false;
+            clearedTerritoryIds.Add(tileId);
+        }
+
+        if (memberIds.Count <= 1)
+        {
+            Phase = SessionPhase.Ended;
+            currentMemberIndex = 0;
+
+            return new MemberRemovalResult
+            {
+                Removed = true,
+                GameEnded = previousPhase != SessionPhase.Ended,
+                WinnerId = memberIds.Count == 1 ? memberIds[0] : null,
+                ClearedTerritoryIds = clearedTerritoryIds.ToArray()
+            };
+        }
+
+        bool shouldBroadcastTurnStarted = false;
+
+        if (previousPhase == SessionPhase.WaitingForBoards)
+        {
+            if (readyMembers.Count == memberIds.Count)
+            {
+                StartFirstTurn();
+                shouldBroadcastTurnStarted = true;
+            }
+        }
+        else if (previousPhase != SessionPhase.Ended)
+        {
+            if (removedIndex < currentMemberIndex)
+                currentMemberIndex--;
+            else if (currentMemberIndex >= memberIds.Count)
+                currentMemberIndex = 0;
+
+            if (removedCurrentMember)
+            {
+                turnFinishedMembers.Clear();
+
+                if (removedLastMemberInOrder && RoundCount >= MAX_ROUND_COUNT)
+                {
+                    Phase = SessionPhase.Ended;
+                }
+                else
+                {
+                    if (removedLastMemberInOrder)
+                        RoundCount++;
+
+                    TurnId++;
+                    Phase = SessionPhase.WaitingForRoll;
+                    shouldBroadcastTurnStarted = true;
+                }
+            }
+            else if (previousPhase == SessionPhase.WaitingForTurnFinished &&
+                     turnFinishedMembers.Count == memberIds.Count)
+            {
+                AdvanceTurn();
+                shouldBroadcastTurnStarted = Phase != SessionPhase.Ended;
+            }
+        }
+
+        return new MemberRemovalResult
+        {
+            Removed = true,
+            ShouldBroadcastTurnStarted = shouldBroadcastTurnStarted,
+            GameEnded = previousPhase != SessionPhase.Ended && Phase == SessionPhase.Ended,
+            ClearedTerritoryIds = clearedTerritoryIds.ToArray()
+        };
+    }
+
+    private void StartFirstTurn()
+    {
+        currentMemberIndex = 0;
+        RoundCount = 1;
+        TurnId = 1;
+        Phase = SessionPhase.WaitingForRoll;
+    }
+
+    private void AdvanceTurn()
+    {
+        bool isLastMember = currentMemberIndex == memberIds.Count - 1;
 
         if (isLastMember && RoundCount >= MAX_ROUND_COUNT)
         {
             Phase = SessionPhase.Ended;
-            return true;
+            return;
         }
 
         currentMemberIndex++;
 
-        if (currentMemberIndex >= memberIds.Length)
+        if (currentMemberIndex >= memberIds.Count)
         {
             currentMemberIndex = 0;
             RoundCount++;
@@ -148,8 +267,6 @@ public class GameSession
 
         TurnId++;
         Phase = SessionPhase.WaitingForRoll;
-        
-        return true;
     }
     
     #endregion
@@ -190,6 +307,14 @@ public class GameSession
                state.OwnerId == ownerId;
     }
 
+    public bool TryChangeTerritoryOwner(int tileId, string ownerId)
+    {
+        if (territoryStates.TryGetValue(tileId, out TerritoryState state) == false) return false;
+
+        state.OwnerId = ownerId;
+        return true;
+    }
+
     public bool TrySetEquipment(string memberId, SetEquipmentMessage message)
     {
         if (memberInventories.TryGetValue(memberId, out EquipmentSlotState[] slots) == false) return false;
@@ -222,11 +347,6 @@ public class GameSession
         return true;
     }
 
-    public void RemoveInventory(string memberId)
-    {
-        memberInventories.Remove(memberId);
-    }
-    
     #region CREATE_MESSAGE
     
     public TurnStartedMessage CreateTurnStartedMessage()

@@ -134,6 +134,7 @@ public class GoldCardDrawnMessage
 public class GameEndedMessage
 {
     public string Type { get; set; } = ProtocolHeader.GAME_ENDED;
+    public string WinnerId { get; set; }
 }
 
 public class EconomyUpdatedMessage
@@ -174,6 +175,17 @@ public class UserMoveFinishedMessage
     public long MoveId { get; set; }
         
     public string RequestId { get; set; }
+}
+
+public class UserMoveCancelledMessage
+{
+    public string Type { get; set; } = ProtocolHeader.USER_MOVE_CANCELLED;
+
+    public int TurnId { get; set; }
+    public long MoveId { get; set; }
+
+    public string RequestId { get; set; }
+    public string UserId { get; set; }
 }
 
 public class TileEffectSyncMessage

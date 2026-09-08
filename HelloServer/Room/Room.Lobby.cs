@@ -108,13 +108,72 @@ public partial class Room
         try
         {
             string id = member.User.Id;
-            
+
             members.Remove(id, out _);
             memberOrder.Remove(id);
-            session?.RemoveInventory(id);
 
-            LeaveMessage msg = new LeaveMessage { Id = id };
+            string newHostId = null;
+            if (isGameStarted == false && member.User.IsHost && memberOrder.Count > 0)
+            {
+                newHostId = memberOrder[0];
+                members[newHostId].User.IsHost = true;
+            }
+
+            bool wasCurrentMember = session != null &&
+                                    session.Phase is not (SessionPhase.WaitingForBoards or SessionPhase.Ended) &&
+                                    session.CurrentMemberId == id;
+
+            CombatDepartureResult combatDeparture = await ResolveCombatDepartureAsync(id);
+            HashSet<int> updatedTerritoryIds = new();
+
+            if (session != null &&
+                combatDeparture != null &&
+                combatDeparture.WinnerId == combatDeparture.AttackerId &&
+                session.TryChangeTerritoryOwner(combatDeparture.TileId, combatDeparture.WinnerId))
+            {
+                updatedTerritoryIds.Add(combatDeparture.TileId);
+            }
+
+            MemberRemovalResult removal = session?.RemoveMember(id);
+            if (removal != null)
+            {
+                updatedTerritoryIds.UnionWith(removal.ClearedTerritoryIds);
+
+                if (removal.GameEnded)
+                {
+                    await CancelAllPendingUserMovesAsync();
+                    ClearPendingGameState();
+                }
+                else
+                    await CleanupPendingStateAfterDepartureAsync(id, wasCurrentMember);
+            }
+
+            LeaveMessage msg = new LeaveMessage
+            {
+                Id = id,
+                NewHostId = newHostId
+            };
             await BroadcastAsync(msg, id);
+
+            if (session != null)
+            {
+                foreach (int tileId in updatedTerritoryIds)
+                    await BroadcastAsync(session.CreateTerritoryUpdatedMessage(tileId));
+
+                await BroadcastAsync(session.CreateEconomyUpdatedMessage());
+
+                if (removal.GameEnded)
+                {
+                    await BroadcastAsync(new GameEndedMessage
+                    {
+                        WinnerId = removal.WinnerId
+                    });
+                }
+                else if (removal.ShouldBroadcastTurnStarted)
+                {
+                    await BroadcastAsync(session.CreateTurnStartedMessage());
+                }
+            }
 
         }
         finally

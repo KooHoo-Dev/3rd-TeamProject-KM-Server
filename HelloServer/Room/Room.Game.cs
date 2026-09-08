@@ -7,11 +7,24 @@ public partial class Room
         public long MoveId;
         public int TurnId;
         public string RequestId;
+        public string RequesterId;
         public string UserId;
 
         public bool EndsTurnAfterMove;
 
         public HashSet<string> WaitingMemberIds = new();
+    }
+
+    private class PendingTileEffect
+    {
+        public TileEffectSyncMessage Message;
+        public HashSet<string> WaitingMemberIds = new();
+    }
+
+    private class PendingTreasure
+    {
+        public string RequesterId;
+        public string TargetId;
     }
     
     private GameSession session;
@@ -19,13 +32,13 @@ public partial class Room
 
     private long lastMoveId;
     private readonly Dictionary<long, PendingUserMove> pendingUserMoves = new();
-    private readonly Dictionary<string, HashSet<string>> tileEffectReadyMembers = new();
+    private readonly Dictionary<string, PendingTileEffect> pendingTileEffects = new();
 
     private int goldCardDrawnTurnId = -1;
     private int goldCardPresentationTurnId = -1;
     private HashSet<string> goldCardPresentationWaitingMembers;
 
-    private readonly Dictionary<string, string> pendingTreasureTargets = new();
+    private readonly Dictionary<string, PendingTreasure> pendingTreasures = new();
 
     private void RegisterGameHandlers()
     {
@@ -128,16 +141,20 @@ public partial class Room
     {
         string key = CreateTileEffectKey(msg);
 
-        if (tileEffectReadyMembers.TryGetValue(key, out HashSet<string> waitingMembers) == false)
+        if (pendingTileEffects.TryGetValue(key, out PendingTileEffect pending) == false)
         {
-            waitingMembers = members.Keys.ToHashSet();
-            tileEffectReadyMembers.Add(key, waitingMembers);
+            pending = new PendingTileEffect
+            {
+                Message = msg,
+                WaitingMemberIds = members.Keys.ToHashSet()
+            };
+            pendingTileEffects.Add(key, pending);
         }
 
-        if (waitingMembers.Remove(member.User.Id) == false) return;
-        if (waitingMembers.Count > 0) return;
+        if (pending.WaitingMemberIds.Remove(member.User.Id) == false) return;
+        if (pending.WaitingMemberIds.Count > 0) return;
 
-        tileEffectReadyMembers.Remove(key);
+        pendingTileEffects.Remove(key);
         await BroadcastAsync(msg);
     }
 
@@ -262,22 +279,26 @@ public partial class Room
     {
         if (member.User.Id != session.CurrentMemberId) return;
         if (string.IsNullOrWhiteSpace(message.RequestId)) return;
-        if (pendingTreasureTargets.ContainsKey(message.RequestId)) return;
+        if (pendingTreasures.ContainsKey(message.RequestId)) return;
         if (members.ContainsKey(message.TargetId) == false) return;
         if (message.EffectType == GoldCardTreasureEffectType.Gain && message.EquipmentId <= 0) return;
         if (message.EffectType is not (GoldCardTreasureEffectType.Gain or GoldCardTreasureEffectType.Lose)) return;
 
-        pendingTreasureTargets.Add(message.RequestId, message.TargetId);
+        pendingTreasures.Add(message.RequestId, new PendingTreasure
+        {
+            RequesterId = member.User.Id,
+            TargetId = message.TargetId
+        });
         await BroadcastAsync(message);
     }
 
     private async Task HandleTreasureResolvedAsync(Member member, TreasureResolvedMessage message)
     {
         if (string.IsNullOrWhiteSpace(message.RequestId)) return;
-        if (pendingTreasureTargets.TryGetValue(message.RequestId, out string targetId) == false) return;
-        if (targetId != member.User.Id) return;
+        if (pendingTreasures.TryGetValue(message.RequestId, out PendingTreasure pending) == false) return;
+        if (pending.TargetId != member.User.Id) return;
 
-        pendingTreasureTargets.Remove(message.RequestId);
+        pendingTreasures.Remove(message.RequestId);
 
         await BroadcastAsync(new TreasureResolvedMessage
         {
@@ -323,6 +344,7 @@ public partial class Room
             MoveId = moveId, 
             TurnId = msg.TurnId, 
             RequestId = msg.RequestId, 
+            RequesterId = member.User.Id,
             UserId = msg.UserId,
             EndsTurnAfterMove = endsTurnAfterMove,
             WaitingMemberIds = members.Keys.ToHashSet()
@@ -346,14 +368,19 @@ public partial class Room
         if (pendingUserMove.WaitingMemberIds.Remove(member.User.Id) == false) return;
         if (pendingUserMove.WaitingMemberIds.Count > 0) return;
 
+        await CompletePendingUserMoveAsync(pendingUserMove);
+    }
+
+    private async Task CompletePendingUserMoveAsync(PendingUserMove pendingUserMove)
+    {
+        if (pendingUserMoves.Remove(pendingUserMove.MoveId) == false) return;
+
         UserMoveFinishedMessage result = new()
         {
             TurnId = pendingUserMove.TurnId, 
             MoveId = pendingUserMove.MoveId, 
             RequestId = pendingUserMove.RequestId
         };
-
-        pendingUserMoves.Remove(pendingUserMove.MoveId);
 
         object turnResult = null;
 
@@ -376,6 +403,115 @@ public partial class Room
 
         if (turnResult != null)
             await BroadcastAsync(turnResult);
+    }
+
+    private async Task CancelPendingUserMoveAsync(PendingUserMove pendingUserMove)
+    {
+        if (pendingUserMoves.Remove(pendingUserMove.MoveId) == false) return;
+
+        foreach ((string key, PendingTileEffect pending) in pendingTileEffects.ToArray())
+        {
+            if (pending.Message.MoveId == pendingUserMove.MoveId)
+                pendingTileEffects.Remove(key);
+        }
+
+        await BroadcastAsync(new UserMoveCancelledMessage
+        {
+            TurnId = pendingUserMove.TurnId,
+            MoveId = pendingUserMove.MoveId,
+            RequestId = pendingUserMove.RequestId,
+            UserId = pendingUserMove.UserId
+        });
+    }
+
+    private async Task CancelAllPendingUserMovesAsync()
+    {
+        foreach (PendingUserMove pendingMove in pendingUserMoves.Values.ToArray())
+            await CancelPendingUserMoveAsync(pendingMove);
+    }
+
+    private async Task CleanupPendingStateAfterDepartureAsync(string memberId, bool wasCurrentMember)
+    {
+        foreach (PendingUserMove pendingMove in pendingUserMoves.Values.ToArray())
+        {
+            if (pendingMove.RequesterId == memberId ||
+                pendingMove.UserId == memberId ||
+                wasCurrentMember)
+            {
+                await CancelPendingUserMoveAsync(pendingMove);
+                continue;
+            }
+
+            pendingMove.WaitingMemberIds.Remove(memberId);
+
+            if (pendingMove.WaitingMemberIds.Count == 0)
+                await CompletePendingUserMoveAsync(pendingMove);
+        }
+
+        if (wasCurrentMember)
+        {
+            pendingTileEffects.Clear();
+        }
+        else foreach ((string key, PendingTileEffect pending) in pendingTileEffects.ToArray())
+        {
+            pending.WaitingMemberIds.Remove(memberId);
+            if (pending.WaitingMemberIds.Count > 0) continue;
+
+            pendingTileEffects.Remove(key);
+            await BroadcastAsync(pending.Message);
+        }
+
+        if (goldCardDrawnTurnId >= 0 && wasCurrentMember)
+        {
+            int turnId = goldCardPresentationTurnId >= 0
+                ? goldCardPresentationTurnId
+                : goldCardDrawnTurnId;
+
+            goldCardPresentationWaitingMembers = null;
+            goldCardPresentationTurnId = -1;
+            goldCardDrawnTurnId = -1;
+
+            await BroadcastAsync(new GoldCardPresentationFinishedMessage
+            {
+                TurnId = turnId
+            });
+        }
+        else if (goldCardPresentationWaitingMembers != null &&
+                 goldCardPresentationWaitingMembers.Remove(memberId) &&
+                 goldCardPresentationWaitingMembers.Count == 0)
+        {
+            int turnId = goldCardPresentationTurnId;
+            goldCardPresentationWaitingMembers = null;
+            goldCardPresentationTurnId = -1;
+            goldCardDrawnTurnId = -1;
+
+            await BroadcastAsync(new GoldCardPresentationFinishedMessage
+            {
+                TurnId = turnId
+            });
+        }
+
+        foreach ((string requestId, PendingTreasure pending) in pendingTreasures.ToArray())
+        {
+            if (pending.RequesterId != memberId && pending.TargetId != memberId) continue;
+
+            pendingTreasures.Remove(requestId);
+            await BroadcastAsync(new TreasureResolvedMessage
+            {
+                RequestId = requestId,
+                TargetId = pending.TargetId
+            });
+        }
+    }
+
+    private void ClearPendingGameState()
+    {
+        pendingUserMoves.Clear();
+        pendingTileEffects.Clear();
+        pendingTreasures.Clear();
+        goldCardPresentationWaitingMembers = null;
+        goldCardPresentationTurnId = -1;
+        goldCardDrawnTurnId = -1;
     }
 
     #endregion
