@@ -128,7 +128,7 @@ public partial class Room
 
         activeCombat.State = CombatState.Preparing;
 
-        await SendToCombatantsAsync(activeCombat, new CombatAssignmentMessage
+        await BroadcastAsync(new CombatAssignmentMessage
         {
             CombatId = activeCombat.CombatId,
             RequestId = activeCombat.RequestId,
@@ -143,18 +143,24 @@ public partial class Room
     {
         if (activeCombat == null || activeCombat.State != CombatState.Preparing) return;
         if (message.CombatId != activeCombat.CombatId) return;
-        if (!IsCombatant(activeCombat, member.User.Id)) return;
         if (!activeCombat.ReadyMemberIds.Add(member.User.Id)) return;
-        if (activeCombat.ReadyMemberIds.Count < 2) return;
 
-        activeCombat.State = CombatState.Fighting;
+        await TryStartCombatAsync(activeCombat);
+    }
 
-        await SendToCombatantsAsync(activeCombat, new CombatStartedMessage
+    private async Task TryStartCombatAsync(ActiveCombat combat)
+    {
+        if (activeCombat != combat || combat.State != CombatState.Preparing) return;
+        if (combat.ReadyMemberIds.Count < members.Count) return;
+
+        combat.State = CombatState.Fighting;
+
+        await BroadcastAsync(new CombatStartedMessage
         {
-            CombatId = activeCombat.CombatId
+            CombatId = combat.CombatId
         });
 
-        _ = RunCombatTimeoutAsync(activeCombat.CombatId);
+        _ = RunCombatTimeoutAsync(combat.CombatId);
     }
 
     private async Task HandleCombatPositionAsync(Member member, CombatPositionMessage message)
@@ -165,7 +171,7 @@ public partial class Room
         if (!float.IsFinite(message.X)) return;
 
         message.PlayerId = member.User.Id;
-        await SendToCombatantsAsync(activeCombat, message);
+        await BroadcastAsync(message);
     }
 
     private async Task HandleSkillCastAsync(Member member, SkillCastMessage message)
@@ -176,7 +182,7 @@ public partial class Room
         if (string.IsNullOrWhiteSpace(message.CastId)) return;
 
         message.CasterId = member.User.Id;
-        await SendToCombatantsAsync(activeCombat, message);
+        await BroadcastAsync(message);
     }
 
     private async Task HandleCombatHealthReportAsync(
@@ -200,7 +206,7 @@ public partial class Room
         else
             activeCombat.DefenderHp = message.RemainingHp;
 
-        await SendToCombatantsAsync(activeCombat, new CombatHealthUpdatedMessage
+        await BroadcastAsync(new CombatHealthUpdatedMessage
         {
             CombatId = activeCombat.CombatId,
             PlayerId = playerId,
@@ -236,7 +242,18 @@ public partial class Room
 
     private async Task<CombatDepartureResult> ResolveCombatDepartureAsync(string memberId)
     {
-        if (activeCombat == null || !IsCombatant(activeCombat, memberId)) return null;
+        if (activeCombat == null) return null;
+
+        if (!IsCombatant(activeCombat, memberId))
+        {
+            if (activeCombat.State == CombatState.Preparing)
+            {
+                activeCombat.ReadyMemberIds.Remove(memberId);
+                await TryStartCombatAsync(activeCombat);
+            }
+
+            return null;
+        }
 
         ActiveCombat combat = activeCombat;
 
@@ -277,7 +294,7 @@ public partial class Room
 
         activeCombat = null;
 
-        await SendToCombatantsAsync(combat, new CombatResultMessage
+        await BroadcastAsync(new CombatResultMessage
         {
             CombatId = combat.CombatId,
             WinnerId = winnerId,
