@@ -282,6 +282,14 @@ public class GameSession
         memberGolds[memberId] += amount;
         return true;
     }
+
+    public bool CanDeclareBankruptcy(string memberId)
+    {
+        if (memberGolds.TryGetValue(memberId, out int gold) == false || gold > 0)
+            return false;
+
+        return territoryStates.Values.All(state => state.OwnerId != memberId);
+    }
     
     public void AddIncapacitationCount(string memberId, int count)
     {

@@ -73,6 +73,12 @@ public class UpdateEconomyMessage
     public EconomyUpdate[] Updates { get; set; }
 }
 
+public class DeclareBankruptcyMessage
+{
+    public string Type { get; set; } = ProtocolHeader.DECLARE_BANKRUPTCY;
+    public string PlayerId { get; set; }
+}
+
 public class AddIncapacitationCountMessage
 {
     public string Type { get; set; } = ProtocolHeader.ADD_INCAPACITATION_COUNT;

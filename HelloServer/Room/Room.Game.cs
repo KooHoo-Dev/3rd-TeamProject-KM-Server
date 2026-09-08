@@ -54,6 +54,9 @@ public partial class Room
             ProtocolHeader.GOLD_CARD_PRESENTATION_FINISHED,
             HandleGoldCardPresentationFinishedAsync);
         RegisterGameHandler<UpdateEconomyMessage>(ProtocolHeader.UPDATE_ECONOMY, HandleUpdateEconomyAsync);
+        RegisterGameHandler<DeclareBankruptcyMessage>(
+            ProtocolHeader.DECLARE_BANKRUPTCY,
+            HandleDeclareBankruptcyAsync);
         RegisterGameHandler<MoveUserToMessage>(ProtocolHeader.MOVE_USER_TO, HandleUserMovedToAsync);
         RegisterGameHandler<UserMoveFinishedMessage>(ProtocolHeader.USER_MOVE_FINISHED, HandleUserMoveFinishedAsync);
         RegisterGameHandler<AddIncapacitationCountMessage>(ProtocolHeader.ADD_INCAPACITATION_COUNT, HandleAddIncapacitationCountAsync);
@@ -237,6 +240,22 @@ public partial class Room
 
         EconomyUpdatedMessage result = session.CreateEconomyUpdatedMessage();
         await BroadcastAsync(result);
+    }
+
+    private async Task HandleDeclareBankruptcyAsync(Member _, DeclareBankruptcyMessage msg)
+    {
+        if (string.IsNullOrEmpty(msg.PlayerId)) return;
+        if (session.CanDeclareBankruptcy(msg.PlayerId) == false) return;
+        if (members.TryGetValue(msg.PlayerId, out Member bankruptMember) == false) return;
+
+        try
+        {
+            await bankruptMember.Connection.CloseAsync(
+                System.Net.WebSockets.WebSocketCloseStatus.NormalClosure,
+                "Bankrupt",
+                CancellationToken.None);
+        }
+        catch (System.Net.WebSockets.WebSocketException) { }
     }
 
     private Task HandleAddIncapacitationCountAsync(Member member, AddIncapacitationCountMessage msg)
