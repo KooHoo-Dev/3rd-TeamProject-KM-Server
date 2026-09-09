@@ -4,6 +4,7 @@ public partial class Room
 {
     private const int COMBAT_START_HP = 50;
     private const int COMBAT_DURATION_SECONDS = 30;
+    private const double INITIAL_COMBAT_REJECTION_CHANCE = 0.5;
 
     private enum CombatState
     {
@@ -20,6 +21,7 @@ public partial class Room
         public int TileId;
         public string AttackerId;
         public string DefenderId;
+        public double RejectionChance;
         public int AttackerHp = COMBAT_START_HP;
         public int DefenderHp = COMBAT_START_HP;
         public CombatState State = CombatState.Offered;
@@ -34,6 +36,7 @@ public partial class Room
     }
 
     private ActiveCombat activeCombat;
+    private readonly Dictionary<string, double> combatRejectionChances = new();
 
     private void RegisterCombatHandlers()
     {
@@ -89,7 +92,10 @@ public partial class Room
             TurnId = message.TurnId,
             TileId = message.TileId,
             AttackerId = attackerId,
-            DefenderId = message.DefenderId
+            DefenderId = message.DefenderId,
+            RejectionChance = combatRejectionChances.GetValueOrDefault(
+                message.DefenderId,
+                INITIAL_COMBAT_REJECTION_CHANCE)
         };
 
         Member defender = members[message.DefenderId];
@@ -100,7 +106,8 @@ public partial class Room
             TurnId = activeCombat.TurnId,
             TileId = activeCombat.TileId,
             AttackerId = activeCombat.AttackerId,
-            DefenderId = activeCombat.DefenderId
+            DefenderId = activeCombat.DefenderId,
+            RejectionChance = activeCombat.RejectionChance
         });
     }
 
@@ -110,7 +117,14 @@ public partial class Room
         if (message.CombatId != activeCombat.CombatId) return;
         if (member.User.Id != activeCombat.DefenderId) return;
 
-        bool rejectSucceeded = !message.Accepted && Random.Shared.Next(2) == 0;
+        string defenderId = activeCombat.DefenderId;
+        double rejectionChance = activeCombat.RejectionChance;
+        bool rejectSucceeded = !message.Accepted && Random.Shared.NextDouble() < rejectionChance;
+
+        if (rejectSucceeded)
+            combatRejectionChances[defenderId] = rejectionChance / 2;
+        else
+            combatRejectionChances.Remove(defenderId);
 
         if (rejectSucceeded)
         {

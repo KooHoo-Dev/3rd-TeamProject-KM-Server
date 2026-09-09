@@ -18,6 +18,7 @@ public class CombatOfferMessage
     public int TileId { get; set; }
     public string AttackerId { get; set; }
     public string DefenderId { get; set; }
+    public double RejectionChance { get; set; } = 0.5;
 }
 
 public class CombatResponseMessage
