@@ -351,7 +351,15 @@ public class GameSession
         if (message.SlotIndex < 0 || message.SlotIndex >= EQUIPMENT_SLOT_COUNT) return false;
         if (slots[message.SlotIndex]?.InstanceId != message.InstanceId) return false;
 
-        slots[message.SlotIndex] = null;
+        for (int i = message.SlotIndex; i < slots.Length - 1; i++)
+        {
+            slots[i] = slots[i + 1];
+
+            if (slots[i] != null)
+                slots[i].SlotIndex = i;
+        }
+
+        slots[slots.Length - 1] = null;
         return true;
     }
 
