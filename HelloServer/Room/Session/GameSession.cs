@@ -383,6 +383,7 @@ public class GameSession
         return new TurnStartedMessage
         {
             RoundCount = RoundCount,
+            MaxRoundCount = MAX_ROUND_COUNT,
             TurnId = TurnId,
             
             PlayerId = CurrentMemberId,

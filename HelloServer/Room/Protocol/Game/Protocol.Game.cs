@@ -112,6 +112,7 @@ public class TurnStartedMessage
     public string Type { get; set; } = ProtocolHeader.TURN_STARTED;
     
     public int RoundCount { get; set; }
+    public int MaxRoundCount { get; set; }
     public int TurnId { get; set; }
     
     public string PlayerId { get; set; }
