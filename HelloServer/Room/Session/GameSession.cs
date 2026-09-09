@@ -26,7 +26,7 @@ public class GameSession
         public bool HasLandMark;
     }
     
-    private const int MAX_ROUND_COUNT = 40;
+    private const int MAX_ROUND_COUNT = 3;
     private const int INITIAL_GOLD = 5000000;
     private const int EQUIPMENT_SLOT_COUNT = 5;
     
