@@ -242,20 +242,49 @@ public partial class Room
         await BroadcastAsync(result);
     }
 
-    private async Task HandleDeclareBankruptcyAsync(Member _, DeclareBankruptcyMessage msg)
+    private async Task HandleDeclareBankruptcyAsync(Member member, DeclareBankruptcyMessage msg)
     {
+        if (session.Phase == SessionPhase.Ended) return;
         if (string.IsNullOrEmpty(msg.PlayerId)) return;
+        if (member.User.Id != session.CurrentMemberId) return;
         if (session.CanDeclareBankruptcy(msg.PlayerId) == false) return;
-        if (members.TryGetValue(msg.PlayerId, out Member bankruptMember) == false) return;
+        if (members.ContainsKey(msg.PlayerId) == false) return;
 
-        try
+        bool wasCurrentMember = session.CurrentMemberId == msg.PlayerId;
+        MemberRemovalResult removal = session.RemoveMember(msg.PlayerId);
+        if (removal.Removed == false) return;
+
+        if (removal.GameEnded)
         {
-            await bankruptMember.Connection.CloseAsync(
-                System.Net.WebSockets.WebSocketCloseStatus.NormalClosure,
-                "Bankrupt",
-                CancellationToken.None);
+            await CancelAllPendingUserMovesAsync();
+            ClearPendingGameState();
         }
-        catch (System.Net.WebSockets.WebSocketException) { }
+        else if (wasCurrentMember)
+        {
+            await CleanupPendingStateAfterDepartureAsync(msg.PlayerId, true);
+        }
+
+        await BroadcastAsync(new PlayerBankruptedMessage
+        {
+            Id = msg.PlayerId
+        });
+
+        foreach (int tileId in removal.ClearedTerritoryIds)
+            await BroadcastAsync(session.CreateTerritoryUpdatedMessage(tileId));
+
+        await BroadcastAsync(session.CreateEconomyUpdatedMessage());
+
+        if (removal.GameEnded)
+        {
+            await BroadcastAsync(new GameEndedMessage
+            {
+                WinnerId = removal.WinnerId
+            });
+        }
+        else if (removal.ShouldBroadcastTurnStarted)
+        {
+            await BroadcastAsync(session.CreateTurnStartedMessage());
+        }
     }
 
     private Task HandleAddIncapacitationCountAsync(Member member, AddIncapacitationCountMessage msg)

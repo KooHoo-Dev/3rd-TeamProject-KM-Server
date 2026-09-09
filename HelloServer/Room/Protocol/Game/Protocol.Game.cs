@@ -143,6 +143,12 @@ public class GameEndedMessage
     public string WinnerId { get; set; }
 }
 
+public class PlayerBankruptedMessage
+{
+    public string Type { get; set; } = ProtocolHeader.PLAYER_BANKRUPTED;
+    public string Id { get; set; }
+}
+
 public class EconomyUpdatedMessage
 {
     public string Type { get; set; } = ProtocolHeader.ECONOMY_UPDATED;
