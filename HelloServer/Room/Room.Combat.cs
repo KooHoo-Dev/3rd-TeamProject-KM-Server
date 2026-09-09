@@ -4,7 +4,7 @@ public partial class Room
 {
     private const int COMBAT_START_HP = 50;
     private const int COMBAT_DURATION_SECONDS = 30;
-    private const int COMBAT_TIMEOUT_SECONDS = 35;
+    private const int COMBAT_TIMEOUT_SECONDS = 34;
     private const double INITIAL_COMBAT_REJECTION_CHANCE = 0.5;
 
     private enum CombatState
